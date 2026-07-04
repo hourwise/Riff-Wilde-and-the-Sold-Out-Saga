@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://cgk5c41eb1ism"
+path="res://.godot/imported/Arch_Gothic.obj-6cea2595767dc593eccafa77db1d0720.mesh"
+
+[deps]
+
+files=["res://.godot/imported/Arch_Gothic.obj-6cea2595767dc593eccafa77db1d0720.mesh"]
+
+source_file="res://Ultimate Modular Ruins Pack - Aug 2021/OBJ/Arch_Gothic.obj"
+dest_files=["res://.godot/imported/Arch_Gothic.obj-6cea2595767dc593eccafa77db1d0720.mesh", "res://.godot/imported/Arch_Gothic.obj-6cea2595767dc593eccafa77db1d0720.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://c4jfuenc5csh5"
+path="res://.godot/imported/Door_8_Flat.obj-c3ad21819421787e1b8ef79517e0bd4c.mesh"
+
+[deps]
+
+files=["res://.godot/imported/Door_8_Flat.obj-c3ad21819421787e1b8ef79517e0bd4c.mesh"]
+
+source_file="res://obj/Door_8_Flat.obj"
+dest_files=["res://.godot/imported/Door_8_Flat.obj-c3ad21819421787e1b8ef79517e0bd4c.mesh", "res://.godot/imported/Door_8_Flat.obj-c3ad21819421787e1b8ef79517e0bd4c.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

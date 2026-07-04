@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://ccur4lbrqx88q"
+path="res://.godot/imported/Floor_SquareLarge.obj-f84f71c894b256d67dbfe468afbc1e42.mesh"
+
+[deps]
+
+files=["res://.godot/imported/Floor_SquareLarge.obj-f84f71c894b256d67dbfe468afbc1e42.mesh"]
+
+source_file="res://Ultimate Modular Ruins Pack - Aug 2021/OBJ/Floor_SquareLarge.obj"
+dest_files=["res://.godot/imported/Floor_SquareLarge.obj-f84f71c894b256d67dbfe468afbc1e42.mesh", "res://.godot/imported/Floor_SquareLarge.obj-f84f71c894b256d67dbfe468afbc1e42.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

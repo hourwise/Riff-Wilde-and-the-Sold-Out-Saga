@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://cigx00mb7pxtw"
+path="res://.godot/imported/Wall_Plaster_WoodGrid.obj-86cc9862b0119f5038fcd2969d4434e5.mesh"
+
+[deps]
+
+files=["res://.godot/imported/Wall_Plaster_WoodGrid.obj-86cc9862b0119f5038fcd2969d4434e5.mesh"]
+
+source_file="res://obj/Wall_Plaster_WoodGrid.obj"
+dest_files=["res://.godot/imported/Wall_Plaster_WoodGrid.obj-86cc9862b0119f5038fcd2969d4434e5.mesh", "res://.godot/imported/Wall_Plaster_WoodGrid.obj-86cc9862b0119f5038fcd2969d4434e5.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

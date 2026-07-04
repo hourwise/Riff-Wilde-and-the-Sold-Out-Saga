@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://dqxo20deq0rt7"
+path="res://.godot/imported/Bookcase_Empty.obj-6531a287e9676d1eaf1d66bb167a681d.mesh"
+
+[deps]
+
+files=["res://.godot/imported/Bookcase_Empty.obj-6531a287e9676d1eaf1d66bb167a681d.mesh"]
+
+source_file="res://Ultimate Modular Ruins Pack - Aug 2021/OBJ/Bookcase_Empty.obj"
+dest_files=["res://.godot/imported/Bookcase_Empty.obj-6531a287e9676d1eaf1d66bb167a681d.mesh", "res://.godot/imported/Bookcase_Empty.obj-6531a287e9676d1eaf1d66bb167a681d.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

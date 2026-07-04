@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://cet8a3l0a4t15"
+path="res://.godot/imported/Roof_RoundTiles_6x10.obj-b3cc7cd1c9e20c9954e710be19ef2040.mesh"
+
+[deps]
+
+files=["res://.godot/imported/Roof_RoundTiles_6x10.obj-b3cc7cd1c9e20c9954e710be19ef2040.mesh"]
+
+source_file="res://obj/Roof_RoundTiles_6x10.obj"
+dest_files=["res://.godot/imported/Roof_RoundTiles_6x10.obj-b3cc7cd1c9e20c9954e710be19ef2040.mesh", "res://.godot/imported/Roof_RoundTiles_6x10.obj-b3cc7cd1c9e20c9954e710be19ef2040.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

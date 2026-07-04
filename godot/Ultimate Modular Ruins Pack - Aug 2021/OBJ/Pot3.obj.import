@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://bm51lm7v3fl5"
+path="res://.godot/imported/Pot3.obj-f5acecbd948878af64e321e591b283da.mesh"
+
+[deps]
+
+files=["res://.godot/imported/Pot3.obj-f5acecbd948878af64e321e591b283da.mesh"]
+
+source_file="res://Ultimate Modular Ruins Pack - Aug 2021/OBJ/Pot3.obj"
+dest_files=["res://.godot/imported/Pot3.obj-f5acecbd948878af64e321e591b283da.mesh", "res://.godot/imported/Pot3.obj-f5acecbd948878af64e321e591b283da.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

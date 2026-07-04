@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://kno1nvye72uu"
+path="res://.godot/imported/Stair_Interior_Rails.obj-9db9f096ea52d6d11b7fadc796189506.mesh"
+
+[deps]
+
+files=["res://.godot/imported/Stair_Interior_Rails.obj-9db9f096ea52d6d11b7fadc796189506.mesh"]
+
+source_file="res://obj/Stair_Interior_Rails.obj"
+dest_files=["res://.godot/imported/Stair_Interior_Rails.obj-9db9f096ea52d6d11b7fadc796189506.mesh", "res://.godot/imported/Stair_Interior_Rails.obj-9db9f096ea52d6d11b7fadc796189506.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

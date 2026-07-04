@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://c3lgkbm87f744"
+path="res://.godot/imported/HoleCover_90Angle.obj-a26ccb1dfdc9a52c350ef53108e97cef.mesh"
+
+[deps]
+
+files=["res://.godot/imported/HoleCover_90Angle.obj-a26ccb1dfdc9a52c350ef53108e97cef.mesh"]
+
+source_file="res://obj/HoleCover_90Angle.obj"
+dest_files=["res://.godot/imported/HoleCover_90Angle.obj-a26ccb1dfdc9a52c350ef53108e97cef.mesh", "res://.godot/imported/HoleCover_90Angle.obj-a26ccb1dfdc9a52c350ef53108e97cef.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

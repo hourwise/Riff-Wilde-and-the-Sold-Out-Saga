@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://kbe8iufsor7h"
+path="res://.godot/imported/Prop_Crate.obj-dcb4c0af1c5c9f0f038181c28eb33c41.mesh"
+
+[deps]
+
+files=["res://.godot/imported/Prop_Crate.obj-dcb4c0af1c5c9f0f038181c28eb33c41.mesh"]
+
+source_file="res://obj/Prop_Crate.obj"
+dest_files=["res://.godot/imported/Prop_Crate.obj-dcb4c0af1c5c9f0f038181c28eb33c41.mesh", "res://.godot/imported/Prop_Crate.obj-dcb4c0af1c5c9f0f038181c28eb33c41.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

@@ -1,0 +1,48 @@
+[gd_scene load_steps=7 format=3 uid="uid://d1g2a3b4c5d6"]
+
+[ext_resource type="Script" path="res://scripts/enemies/TrainingDummy.gd" id="1_dummy_script"]
+[ext_resource type="Script" path="res://scripts/combat/Hurtbox.gd" id="2_hurtbox_script"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_dummy"]
+height = 1.6
+radius = 0.4
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_dummy"]
+top_radius = 0.4
+bottom_radius = 0.4
+height = 1.6
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_dummy"]
+albedo_color = Color(0.85, 0.45, 0.2, 1)
+roughness = 0.5
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
+size = Vector3(1.0, 1.8, 1.0)
+
+[node name="TrainingDummy" type="CharacterBody3D"]
+collision_layer = 4
+collision_mask = 3
+script = ExtResource("1_dummy_script")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
+shape = SubResource("CylinderShape3D_dummy")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
+mesh = SubResource("CylinderMesh_dummy")
+surface_material_override/0 = SubResource("StandardMaterial3D_dummy")
+
+[node name="Hurtbox" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
+script = ExtResource("2_hurtbox_script")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
+shape = SubResource("BoxShape3D_hurtbox")
+
+[node name="Label3D" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.8, 0)
+billboard = 1
+text = "Dummy HP: 100/100"
+font_size = 36
+outline_size = 12

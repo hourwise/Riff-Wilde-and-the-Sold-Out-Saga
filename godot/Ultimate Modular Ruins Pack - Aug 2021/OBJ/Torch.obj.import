@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://bwc1l0vmvn5q6"
+path="res://.godot/imported/Torch.obj-0b206925503d92f70f909e99a9059ffa.mesh"
+
+[deps]
+
+files=["res://.godot/imported/Torch.obj-0b206925503d92f70f909e99a9059ffa.mesh"]
+
+source_file="res://Ultimate Modular Ruins Pack - Aug 2021/OBJ/Torch.obj"
+dest_files=["res://.godot/imported/Torch.obj-0b206925503d92f70f909e99a9059ffa.mesh", "res://.godot/imported/Torch.obj-0b206925503d92f70f909e99a9059ffa.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false
