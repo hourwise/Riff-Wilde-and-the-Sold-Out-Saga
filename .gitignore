@@ -1,0 +1,21 @@
+# Godot 4.x gitignore
+
+# Godot-specific excludes
+.godot/
+*.translation
+
+# Mono-specific excludes (if any)
+.mono/
+data_*/
+mono_crash*.log
+
+# System/IDE excludes
+.DS_Store
+Thumbs.db
+.vscode/
+.import/
+*.tmp
+
+# Export directories
+exports/
+godot/exports/

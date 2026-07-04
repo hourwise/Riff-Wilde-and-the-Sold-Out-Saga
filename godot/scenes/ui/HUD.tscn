@@ -1,0 +1,124 @@
+[gd_scene load_steps=5 format=3 uid="uid://d1h2a3b4c5d6"]
+
+[ext_resource type="Script" path="res://scripts/ui/HUDController.gd" id="1_hud_script"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_health"]
+bg_color = Color(0.8, 0.15, 0.15, 1.0)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_breath"]
+bg_color = Color(0.15, 0.6, 0.8, 1.0)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_resonance"]
+bg_color = Color(0.85, 0.65, 0.1, 1.0)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="HUD" type="CanvasLayer"]
+
+[node name="HUDController" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_hud_script")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HUDController"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 320.0
+offset_bottom = 130.0
+theme_override_constants/separation = 8
+
+[node name="HealthBar" type="ProgressBar" parent="HUDController/VBoxContainer"]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+theme_override_styles/fill = SubResource("StyleBoxFlat_health")
+value = 100.0
+show_percentage = false
+
+[node name="Label" type="Label" parent="HUDController/VBoxContainer/HealthBar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "Health"
+vertical_alignment = 1
+
+[node name="BreathBar" type="ProgressBar" parent="HUDController/VBoxContainer"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+theme_override_styles/fill = SubResource("StyleBoxFlat_breath")
+value = 100.0
+show_percentage = false
+
+[node name="Label" type="Label" parent="HUDController/VBoxContainer/BreathBar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "Breath"
+vertical_alignment = 1
+
+[node name="ResonanceBar" type="ProgressBar" parent="HUDController/VBoxContainer"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+theme_override_styles/fill = SubResource("StyleBoxFlat_resonance")
+value = 0.0
+show_percentage = false
+
+[node name="Label" type="Label" parent="HUDController/VBoxContainer/ResonanceBar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "Resonance"
+vertical_alignment = 1
+
+[node name="ComboLabel" type="Label" parent="HUDController"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 140.0
+offset_right = 420.0
+offset_bottom = 178.0
+theme_override_font_sizes/font_size = 24
+text = "Combo"
+
+[node name="CenterMessageLabel" type="Label" parent="HUDController"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -260.0
+offset_top = -40.0
+offset_right = 260.0
+offset_bottom = 40.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 30
+text = "Message"
+horizontal_alignment = 1
+vertical_alignment = 1

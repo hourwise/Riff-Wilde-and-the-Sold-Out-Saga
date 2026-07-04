@@ -1,0 +1,166 @@
+[gd_scene load_steps=15 format=3 uid="uid://d1f2a3b4c5d6"]
+
+[ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="1_player"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/TrainingDummy.tscn" id="2_dummy"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/ToneDeaf.tscn" id="3_tone_deaf"]
+[ext_resource type="Script" path="res://scripts/levels/PrototypeArena.gd" id="4_arena_script"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/IroncladWarden.tscn" id="5_warden"]
+[ext_resource type="Script" path="res://scripts/interactables/ScoutingMarker.gd" id="6_scouting_marker"]
+[ext_resource type="Script" path="res://scripts/interactables/ExtractionPoint.gd" id="7_extraction_point"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_arena"]
+sky_horizon_color = Color(0.64625, 0.65575, 0.67075, 1)
+ground_horizon_color = Color(0.64625, 0.65575, 0.67075, 1)
+
+[sub_resource type="Sky" id="Sky_arena"]
+sky_material = SubResource("ProceduralSkyMaterial_arena")
+
+[sub_resource type="Environment" id="Environment_arena"]
+background_mode = 2
+sky = SubResource("Sky_arena")
+tonemap_mode = 2
+glow_enabled = true
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_scouting_marker"]
+height = 2.4
+radius = 1.4
+
+[sub_resource type="SphereMesh" id="SphereMesh_scouting_marker"]
+radius = 0.55
+height = 1.1
+
+[sub_resource type="StandardMaterial3D" id="Material_scouting_marker"]
+albedo_color = Color(0.1, 0.65, 1, 0.42)
+transparency = 1
+shading_mode = 0
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_extraction"]
+height = 2.6
+radius = 1.6
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_extraction"]
+top_radius = 1.2
+bottom_radius = 1.2
+height = 0.18
+radial_segments = 40
+
+[sub_resource type="StandardMaterial3D" id="Material_extraction"]
+albedo_color = Color(1, 0.76, 0.18, 0.68)
+emission_enabled = true
+emission = Color(1, 0.5, 0.08, 1)
+emission_energy_multiplier = 0.8
+transparency = 1
+shading_mode = 0
+
+[node name="PrototypeArena" type="Node3D"]
+script = ExtResource("4_arena_script")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_arena")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, 0.75, -0.433013, 0, 10, 0)
+shadow_enabled = true
+
+[node name="Environment" type="Node3D" parent="."]
+
+[node name="Floor" type="CSGBox3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+use_collision = true
+size = Vector3(50, 1, 50)
+
+[node name="Wall_North" type="CSGBox3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, -25)
+use_collision = true
+size = Vector3(50, 5, 1)
+
+[node name="Wall_South" type="CSGBox3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 25)
+use_collision = true
+size = Vector3(50, 5, 1)
+
+[node name="Wall_East" type="CSGBox3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 2.5, 0)
+use_collision = true
+size = Vector3(1, 5, 50)
+
+[node name="Wall_West" type="CSGBox3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25, 2.5, 0)
+use_collision = true
+size = Vector3(1, 5, 50)
+
+[node name="Platform1" type="CSGBox3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0.5, -10)
+use_collision = true
+size = Vector3(6, 1, 6)
+
+[node name="Platform2" type="CSGBox3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 1, 10)
+use_collision = true
+size = Vector3(8, 2, 8)
+
+[node name="Ramp" type="CSGBox3D" parent="Environment"]
+transform = Transform3D(0.965926, -0.258819, 0, 0.258819, 0.965926, 0, 0, 0, 1, 10, 0.5, 2)
+use_collision = true
+size = Vector3(8, 1, 4)
+
+[node name="Player" parent="." instance=ExtResource("1_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+
+[node name="TrainingDummy" parent="." instance=ExtResource("2_dummy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, -5)
+
+[node name="TrainingDummy2" parent="." instance=ExtResource("2_dummy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0.5, -8)
+
+[node name="ToneDeaf" parent="." instance=ExtResource("3_tone_deaf")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0.5, -8)
+
+[node name="ToneDeaf2" parent="." instance=ExtResource("3_tone_deaf")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0.5, -10)
+
+[node name="ToneDeaf3" parent="." instance=ExtResource("3_tone_deaf")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0.5, 6)
+
+[node name="IroncladWarden" parent="." instance=ExtResource("5_warden")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0.5, -2)
+
+[node name="ScoutingMarker" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 1.2, 17)
+collision_mask = 2
+script = ExtResource("6_scouting_marker")
+marker_name = "Far corner overlook"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ScoutingMarker"]
+shape = SubResource("CylinderShape3D_scouting_marker")
+
+[node name="MarkerVisual" type="MeshInstance3D" parent="ScoutingMarker"]
+mesh = SubResource("SphereMesh_scouting_marker")
+surface_material_override/0 = SubResource("Material_scouting_marker")
+
+[node name="ScoutingMarkerLabel" type="Label3D" parent="ScoutingMarker"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
+billboard = 1
+text = "Scout Area"
+font_size = 32
+outline_size = 8
+
+[node name="ExtractionPoint" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 1.3, 18)
+visible = false
+collision_mask = 2
+script = ExtResource("7_extraction_point")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ExtractionPoint"]
+shape = SubResource("CylinderShape3D_extraction")
+
+[node name="ExtractionVisual" type="MeshInstance3D" parent="ExtractionPoint"]
+mesh = SubResource("CylinderMesh_extraction")
+surface_material_override/0 = SubResource("Material_extraction")
+
+[node name="ExtractionLabel" type="Label3D" parent="ExtractionPoint"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, 0)
+billboard = 1
+text = "Exit"
+font_size = 34
+outline_size = 8

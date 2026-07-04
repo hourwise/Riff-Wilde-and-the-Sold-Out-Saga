@@ -1,0 +1,90 @@
+[gd_scene load_steps=10 format=3 uid="uid://ironclad_warden_enemy"]
+
+[ext_resource type="Script" path="res://scripts/enemies/IroncladWardenAI.gd" id="1_ai"]
+[ext_resource type="Script" path="res://scripts/combat/Hurtbox.gd" id="2_hurtbox"]
+[ext_resource type="Script" path="res://scripts/enemies/EnemyStatusBars.gd" id="3_status_bars"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_warden"]
+radius = 0.65
+height = 2.2
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_warden_body"]
+radius = 0.62
+height = 2.2
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_warden_armor"]
+radius = 0.74
+height = 2.35
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_warden_body"]
+albedo_color = Color(0.28, 0.24, 0.2, 1)
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_warden_armor"]
+albedo_color = Color(0.62, 0.66, 0.72, 0.78)
+metallic = 0.65
+roughness = 0.35
+transparency = 1
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
+size = Vector3(1.6, 2.5, 1.6)
+
+[node name="IroncladWarden" type="CharacterBody3D"]
+collision_layer = 4
+collision_mask = 3
+script = ExtResource("1_ai")
+max_health = 140.0
+knockback_resistance = 4.0
+detection_range = 22.0
+leash_range = 34.0
+attack_range = 2.1
+move_speed = 1.75
+acceleration = 7.0
+attack_damage = 18.0
+attack_cooldown = 1.8
+attack_windup = 0.65
+hit_stun_duration = 0.15
+separation_radius = 1.9
+separation_strength = 1.4
+max_armor = 100.0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0)
+shape = SubResource("CapsuleShape3D_warden")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0)
+mesh = SubResource("CapsuleMesh_warden_body")
+surface_material_override/0 = SubResource("StandardMaterial3D_warden_body")
+
+[node name="ArmorShell" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0)
+mesh = SubResource("CapsuleMesh_warden_armor")
+surface_material_override/0 = SubResource("StandardMaterial3D_warden_armor")
+
+[node name="Hurtbox" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0)
+script = ExtResource("2_hurtbox")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
+shape = SubResource("BoxShape3D_hurtbox")
+
+[node name="Label3D" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.65, 0)
+billboard = 1
+text = "Ironclad HP: 140/140\nArmor: 100/100"
+font_size = 28
+outline_size = 8
+
+[node name="EnemyStatusBars" type="Node3D" parent="."]
+transform = Transform3D(1.45, 0, 0, 0, 1.45, 0, 0, 0, 1.45, 0, 3.0, 0)
+script = ExtResource("3_status_bars")
+bar_width = 1.2
+bar_height = 0.08
+show_armor_bar = true
+
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
+path_desired_distance = 0.6
+target_desired_distance = 1.9
+radius = 0.75
+height = 2.2

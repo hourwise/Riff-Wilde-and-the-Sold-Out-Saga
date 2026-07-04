@@ -1,0 +1,104 @@
+[gd_scene load_steps=15 format=3 uid="uid://b1c2d3e4f5a6"]
+
+[ext_resource type="Script" path="res://scripts/player/PlayerController.gd" id="1_controller"]
+[ext_resource type="Script" path="res://scripts/player/PlayerStateMachine.gd" id="2_state_machine"]
+[ext_resource type="Script" path="res://scripts/player/StrikeController.gd" id="3_strike_controller"]
+[ext_resource type="Script" path="res://scripts/combat/Hitbox.gd" id="4_hitbox"]
+[ext_resource type="Script" path="res://scripts/player/PlayerStats.gd" id="5_stats"]
+[ext_resource type="Script" path="res://scripts/player/SingController.gd" id="6_sing_controller"]
+[ext_resource type="Script" path="res://scripts/player/CombatBuffer.gd" id="7_combat_buffer"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
+radius = 0.5
+height = 2.0
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_player"]
+radius = 0.5
+height = 2.0
+
+[sub_resource type="BoxMesh" id="BoxMesh_lute"]
+size = Vector3(0.2, 1.2, 0.2)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_hitbox"]
+size = Vector3(1.8, 1.5, 2.0)
+
+[sub_resource type="SphereShape3D" id="BoxShape3D_sing"]
+radius = 6.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_shockwave"]
+transparency = 1
+blend_mode = 1
+shading_mode = 0
+albedo_color = Color(0.2, 0.6, 0.9, 0.7)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_shockwave"]
+material = SubResource("StandardMaterial3D_shockwave")
+top_radius = 1.0
+bottom_radius = 1.0
+height = 0.1
+radial_segments = 16
+rings = 1
+
+[node name="Player" type="CharacterBody3D"]
+collision_layer = 2
+collision_mask = 5
+script = ExtResource("1_controller")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+shape = SubResource("CapsuleShape3D_player")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("CapsuleMesh_player")
+
+[node name="LuteWeapon" type="Node3D" parent="MeshInstance3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, 0.2, -0.4)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="MeshInstance3D/LuteWeapon"]
+transform = Transform3D(1, 0, 0, 0, 0.866025, 0.5, 0, -0.5, 0.866025, 0, 0.4, 0)
+mesh = SubResource("BoxMesh_lute")
+
+[node name="Hitbox" type="Area3D" parent="MeshInstance3D/LuteWeapon"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.4, 0, -0.8)
+monitoring = false
+script = ExtResource("4_hitbox")
+damage = 20.0
+knockback_force = 4.0
+resonance_gain = 8.0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshInstance3D/LuteWeapon/Hitbox"]
+shape = SubResource("BoxShape3D_hitbox")
+
+[node name="SingBlastArea" type="Area3D" parent="MeshInstance3D"]
+monitoring = false
+script = ExtResource("4_hitbox")
+damage = 5.0
+knockback_force = 12.0
+resonance_gain = 0.0
+use_directional_filter = true
+directional_half_angle_degrees = 10.0
+directional_range = 2.0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshInstance3D/SingBlastArea"]
+shape = SubResource("BoxShape3D_sing")
+
+[node name="ShockwaveMesh" type="MeshInstance3D" parent="MeshInstance3D/SingBlastArea"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+visible = false
+mesh = SubResource("CylinderMesh_shockwave")
+
+[node name="PlayerStateMachine" type="Node" parent="."]
+script = ExtResource("2_state_machine")
+
+[node name="StrikeController" type="Node" parent="."]
+script = ExtResource("3_strike_controller")
+
+[node name="PlayerStats" type="Node" parent="."]
+script = ExtResource("5_stats")
+
+[node name="CombatBuffer" type="Node" parent="."]
+script = ExtResource("7_combat_buffer")
+
+[node name="SingController" type="Node" parent="."]
+script = ExtResource("6_sing_controller")
