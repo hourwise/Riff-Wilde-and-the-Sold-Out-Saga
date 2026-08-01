@@ -167,6 +167,33 @@ Automated: `godot --headless --path godot --script res://tools/smoke_test_phase3
 | Choir is worth prioritising | Manual | ⬜ | Ignoring the Choir noticeably raises incoming damage; silencing it is felt |
 | Shockwave punishes standing still | Manual | ⬜ | Ringer's arc can be sidestepped or escaped behind |
 
+## VS Phase 4: Encore, Companion & Layered Music
+
+Automated: `godot --headless --path godot --script res://tools/smoke_test_phase4.gd`
+(27 checks). Music cannot be heard until the stems land, so these assert what must
+be right *before* audio arrives.
+
+| Test | Type | Status | Description |
+|---|---|---|---|
+| Bar length matches the stem contract | Auto | ✅ | 2.000s at 120 BPM 4/4; drift here puts every layer reveal off-beat |
+| One Encore tier per combat stem | Auto | ✅ | Four ascending thresholds, top tier at a full meter |
+| Hits build Encore | Auto | ✅ | — |
+| Combos out-earn single hits | Auto | ✅ | Or the meter teaches mashing instead of skill |
+| Damage costs Encore | Auto | ✅ | — |
+| Encore decays when idle | Auto | ✅ | — |
+| Full meter announces once | Auto | ✅ | And re-announces after being spent and refilled |
+| Combat starts on proximity | Auto | ✅ | Drives the ambient → combat crossfade |
+| Combat ends after disengage delay | Auto | ✅ | Hysteretic, so the soundtrack does not flap |
+| Cannot summon without Encore | Auto | ✅ | — |
+| Summon spends the whole meter | Auto | ✅ | — |
+| Sir Brass dismisses and frees himself | Auto | ✅ | He must not become a permanent follower — ADR-0002 rules that out |
+| Layers stay phase-locked | Manual | ⬜ | **Once stems arrive:** silent layers must keep playing. If a layer is ever stopped and restarted it will drift out of sync |
+| Layers enter on the beat | Manual | ⬜ | Instruments appear on a bar line, never mid-phrase |
+| Encore is audible | Manual | ⬜ | Building Encore adds instruments; the player can hear they are doing well |
+| Ambient/combat crossfade | Manual | ⬜ | Smooth both ways; no lurching when a straggler re-engages |
+| Sir Brass reads as spectacle | Manual | ⬜ | Materialise, blast, fade lands as the payoff for a full meter |
+| Encore prompt is actionable | Manual | ⬜ | "ENCORE READY" appears and stays summonable long enough to react to |
+
 ## Phase 8: Polish & Export
 
 | Test | Type | Status | Description |

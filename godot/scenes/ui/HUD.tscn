@@ -1,4 +1,4 @@
-[gd_scene load_steps=5 format=3 uid="uid://d1h2a3b4c5d6"]
+[gd_scene load_steps=6 format=3 uid="uid://d1h2a3b4c5d6"]
 
 [ext_resource type="Script" path="res://scripts/ui/HUDController.gd" id="1_hud_script"]
 
@@ -11,6 +11,13 @@ corner_radius_bottom_left = 4
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_breath"]
 bg_color = Color(0.15, 0.6, 0.8, 1.0)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_encore"]
+bg_color = Color(0.35, 0.75, 1.0, 1.0)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 corner_radius_bottom_right = 4
@@ -94,6 +101,24 @@ offset_left = 8.0
 grow_horizontal = 2
 grow_vertical = 2
 text = "Resonance"
+vertical_alignment = 1
+
+[node name="EncoreBar" type="ProgressBar" parent="HUDController/VBoxContainer"]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+theme_override_styles/fill = SubResource("StyleBoxFlat_encore")
+value = 0.0
+show_percentage = false
+
+[node name="Label" type="Label" parent="HUDController/VBoxContainer/EncoreBar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "Encore"
 vertical_alignment = 1
 
 [node name="ComboLabel" type="Label" parent="HUDController"]

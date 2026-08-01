@@ -3,6 +3,7 @@ extends Control
 @onready var health_bar: ProgressBar = $VBoxContainer/HealthBar
 @onready var breath_bar: ProgressBar = $VBoxContainer/BreathBar
 @onready var resonance_bar: ProgressBar = $VBoxContainer/ResonanceBar
+@onready var encore_bar: ProgressBar = $VBoxContainer/EncoreBar
 @onready var combo_label: Label = $ComboLabel
 @onready var center_message_label: Label = $CenterMessageLabel
 
@@ -14,6 +15,7 @@ var center_message_tween: Tween = null
 var _lock_on_reticle: Panel = null
 var _lock_on_target: Node3D = null
 var _reticle_tween: Tween = null
+var _encore_tween: Tween = null
 
 func _ready() -> void:
 	_set_mouse_filter_ignore(self)
@@ -21,6 +23,36 @@ func _ready() -> void:
 	center_message_label.visible = false
 	_build_lock_on_reticle()
 	EventBus.lock_on_changed.connect(_on_lock_on_changed)
+	EventBus.encore_changed.connect(_on_encore_changed)
+	EventBus.encore_full.connect(_on_encore_full)
+
+
+func _on_encore_changed(value: float, max_value: float) -> void:
+	if encore_bar == null:
+		return
+	encore_bar.max_value = max_value
+	encore_bar.value = value
+
+
+## A full meter is the cue to summon Sir Brass, so it has to be impossible to
+## miss mid-fight — the bar pulses and says what to press.
+func _on_encore_full() -> void:
+	if encore_bar == null:
+		return
+
+	if _encore_tween:
+		_encore_tween.kill()
+
+	var label := encore_bar.get_node_or_null("Label") as Label
+	if label != null:
+		label.text = "ENCORE READY  —  F"
+
+	_encore_tween = create_tween()
+	_encore_tween.set_loops(6)
+	_encore_tween.tween_property(encore_bar, "modulate", Color(1.6, 1.6, 1.6, 1.0), 0.28)
+	_encore_tween.tween_property(encore_bar, "modulate", Color.WHITE, 0.28)
+
+	show_temporary_center_message("ENCORE READY", 1.6)
 
 
 func _process(_delta: float) -> void:

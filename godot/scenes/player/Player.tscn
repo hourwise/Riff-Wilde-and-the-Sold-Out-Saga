@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3 uid="uid://b1c2d3e4f5a6"]
+[gd_scene load_steps=20 format=3 uid="uid://b1c2d3e4f5a6"]
 
 [ext_resource type="Script" path="res://scripts/player/PlayerController.gd" id="1_controller"]
 [ext_resource type="Script" path="res://scripts/player/PlayerStateMachine.gd" id="2_state_machine"]
@@ -10,6 +10,9 @@
 [ext_resource type="Script" path="res://scripts/combat/LockOnController.gd" id="8_lock_on"]
 [ext_resource type="Script" path="res://scripts/combat/CombatFeedback.gd" id="9_combat_feedback"]
 [ext_resource type="Script" path="res://scripts/characters/CharacterVisual.gd" id="10_character_visual"]
+[ext_resource type="Script" path="res://scripts/player/EncoreMeter.gd" id="11_encore"]
+[ext_resource type="Script" path="res://scripts/player/CompanionSummoner.gd" id="12_summoner"]
+[ext_resource type="Script" path="res://scripts/combat/CombatStateTracker.gd" id="13_combat_state"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
 radius = 0.5
@@ -114,3 +117,12 @@ script = ExtResource("8_lock_on")
 
 [node name="CombatFeedback" type="Node" parent="."]
 script = ExtResource("9_combat_feedback")
+
+[node name="EncoreMeter" type="Node" parent="."]
+script = ExtResource("11_encore")
+
+[node name="CompanionSummoner" type="Node" parent="."]
+script = ExtResource("12_summoner")
+
+[node name="CombatStateTracker" type="Node" parent="."]
+script = ExtResource("13_combat_state")
