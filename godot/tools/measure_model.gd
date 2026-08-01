@@ -44,6 +44,25 @@ func _measure(path: String) -> void:
 			await process_frame
 			await process_frame
 
+	# Static pieces: report the real world-space footprint, which is what tiling
+	# spacing must match.
+	if skeleton == null:
+		var bounds: AABB = AABB()
+		var first: bool = true
+		for node in _find_all(instance, "MeshInstance3D"):
+			var mesh_instance := node as MeshInstance3D
+			if mesh_instance.mesh == null:
+				continue
+			var world_box: AABB = mesh_instance.global_transform * mesh_instance.mesh.get_aabb()
+			bounds = world_box if first else bounds.merge(world_box)
+			first = false
+		if not first:
+			print("  world footprint: size=%s  min=%s" % [
+				str(bounds.size.snapped(Vector3.ONE * 0.001)),
+				str(bounds.position.snapped(Vector3.ONE * 0.001)),
+			])
+		print("  root scale=%s" % str(instance.scale))
+
 	if skeleton != null:
 		var low: Vector3 = Vector3.INF
 		var high: Vector3 = -Vector3.INF
@@ -61,6 +80,15 @@ func _measure(path: String) -> void:
 
 	instance.queue_free()
 	await process_frame
+
+
+func _find_all(node: Node, type_name: String) -> Array:
+	var found: Array = []
+	if node.is_class(type_name):
+		found.append(node)
+	for child in node.get_children():
+		found.append_array(_find_all(child, type_name))
+	return found
 
 
 func _find(node: Node, type_name: String) -> Node:
