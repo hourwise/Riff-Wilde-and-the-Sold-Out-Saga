@@ -10,5 +10,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
 collision_mask = 1
 spring_length = 4.0
 
-[node name="Camera3D" type="Camera3D" parent="SpringArm3D"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+; SpringArm3D repositions every direct Node3D child each frame. ShakePivot absorbs
+; that, leaving the camera's own local transform free for shake to use. Do not
+; parent the camera directly to the spring arm — writing its position there fights
+; the arm and collapses the view to first person.
+[node name="ShakePivot" type="Node3D" parent="SpringArm3D"]
+
+[node name="Camera3D" type="Camera3D" parent="SpringArm3D/ShakePivot"]

@@ -33,6 +33,7 @@ func _initialize() -> void:
 
 	_test_attack_chain(player)
 	_test_dodge_iframes(player)
+	await _test_camera_framing(player)
 	await _test_hitstop()
 	await _test_lock_on(player)
 
@@ -85,6 +86,46 @@ func _test_dodge_iframes(player: Node3D) -> void:
 		float(player.get("dodge_cooldown")) > 0.0,
 		"dodge cannot be spammed without cooldown"
 	)
+
+
+## The game is third person. Anything that writes the camera's transform can
+## collapse it onto the player and silently turn the game first person — which is
+## exactly what caching the camera's rest position before SpringArm3D had run did.
+## Distance is asserted at rest and while shaking, since shake is the code that
+## touches the camera transform.
+func _test_camera_framing(player: Node3D) -> void:
+	var rig: Node3D = player.get_node_or_null("PlayerCameraRig")
+	if not _check(rig != null, "camera rig present"):
+		return
+
+	var spring_arm := rig.get_node_or_null("SpringArm3D") as SpringArm3D
+	var camera: Camera3D = rig.get("camera")
+	if not _check(spring_arm != null and camera != null, "spring arm and camera resolve"):
+		return
+
+	_check(
+		camera.get_parent() != spring_arm,
+		"camera is not a direct spring arm child, so shake cannot fight it"
+	)
+
+	# The arm may be shortened by geometry, so require a clear majority of it.
+	var minimum: float = spring_arm.spring_length * 0.5
+	await process_frame
+	await process_frame
+
+	var rest_distance: float = camera.global_position.distance_to(player.global_position)
+	_check(rest_distance > minimum, "camera sits behind the player at rest (%.2fm)" % rest_distance)
+
+	rig.call("add_shake", 1.0)
+	for i in range(3):
+		await process_frame
+
+	var shake_distance: float = camera.global_position.distance_to(player.global_position)
+	_check(shake_distance > minimum, "camera stays third person while shaking (%.2fm)" % shake_distance)
+
+	# Let the trauma decay so it does not bleed into later checks.
+	for i in range(30):
+		await process_frame
 
 
 func _test_hitstop() -> void:

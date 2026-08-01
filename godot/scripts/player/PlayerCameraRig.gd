@@ -33,7 +33,10 @@ extends Node3D
 @export var shake_frequency: float = 22.0
 
 @onready var spring_arm: SpringArm3D = $SpringArm3D
-@onready var camera: Camera3D = $SpringArm3D/Camera3D
+## Absorbs the spring arm's per-frame repositioning so the camera's own local
+## transform is free for shake. See the note in PlayerCameraRig.tscn.
+@onready var shake_pivot: Node3D = $SpringArm3D/ShakePivot
+@onready var camera: Camera3D = $SpringArm3D/ShakePivot/Camera3D
 
 var _mouse_sensitivity: float = 0.003
 var _gamepad_sensitivity: float = 2.4
@@ -45,13 +48,11 @@ var _lock_controller: LockOnController = null
 var _trauma: float = 0.0
 var _shake_time: float = 0.0
 var _shake_noise: FastNoiseLite = null
-var _camera_rest_position: Vector3 = Vector3.ZERO
 
 
 func _ready() -> void:
 	_apply_settings()
 	_build_shake_noise()
-	_camera_rest_position = camera.position
 
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	camera.current = true
@@ -158,9 +159,11 @@ func _build_shake_noise() -> void:
 
 
 func _update_shake(delta: float) -> void:
+	# The camera sits at the pivot's origin when at rest. Its local transform is
+	# ours alone to write — the spring arm only ever moves the pivot.
 	if _trauma <= 0.0:
-		if camera.position != _camera_rest_position:
-			camera.position = _camera_rest_position
+		if camera.position != Vector3.ZERO:
+			camera.position = Vector3.ZERO
 			camera.rotation.z = 0.0
 		return
 
@@ -171,7 +174,7 @@ func _update_shake(delta: float) -> void:
 	# which reads better than a linear response.
 	var intensity: float = _trauma * _trauma
 
-	camera.position = _camera_rest_position + Vector3(
+	camera.position = Vector3(
 		_shake_noise.get_noise_2d(_shake_time, 0.0) * shake_max_offset * intensity,
 		_shake_noise.get_noise_2d(0.0, _shake_time) * shake_max_offset * intensity,
 		0.0
