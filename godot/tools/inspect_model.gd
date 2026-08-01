@@ -43,12 +43,39 @@ func _inspect(path: String) -> void:
 				anim_name, anim.length, anim.get_track_count(), anim.loop_mode != Animation.LOOP_NONE
 			])
 
+	# Merged bounds, so the model can be scaled to match a collision capsule.
+	var meshes: Array = _find_all(root, "MeshInstance3D")
+	if meshes.is_empty():
+		print("  NO MeshInstance3D FOUND")
+	else:
+		var bounds: AABB = AABB()
+		var first: bool = true
+		for mesh_instance: MeshInstance3D in meshes:
+			if mesh_instance.mesh == null:
+				continue
+			var box: AABB = mesh_instance.global_transform * mesh_instance.mesh.get_aabb()
+			bounds = box if first else bounds.merge(box)
+			first = false
+		print("  %d mesh(es), bounds size=%s origin=%s" % [meshes.size(), str(bounds.size.snapped(Vector3.ONE * 0.01)), str(bounds.position.snapped(Vector3.ONE * 0.01))])
+
 	for skeleton: Skeleton3D in _find_all(root, "Skeleton3D"):
 		print("  Skeleton3D '%s': %d bones" % [skeleton.name, skeleton.get_bone_count()])
 		var sample: PackedStringArray = []
 		for i in range(mini(12, skeleton.get_bone_count())):
 			sample.append(skeleton.get_bone_name(i))
 		print("    bones: %s%s" % [", ".join(sample), " ..." if skeleton.get_bone_count() > 12 else ""])
+
+		# Skinned meshes report a bind-pose AABB that is useless for sizing, so
+		# derive real dimensions from where the bones actually rest.
+		var low: Vector3 = Vector3.INF
+		var high: Vector3 = -Vector3.INF
+		for i in range(skeleton.get_bone_count()):
+			var point: Vector3 = (skeleton.global_transform * skeleton.get_bone_global_rest(i)).origin
+			low = Vector3(minf(low.x, point.x), minf(low.y, point.y), minf(low.z, point.z))
+			high = Vector3(maxf(high.x, point.x), maxf(high.y, point.y), maxf(high.z, point.z))
+		print("    rest extent: size=%s floor_y=%.3f" % [
+			str((high - low).snapped(Vector3.ONE * 0.01)), low.y
+		])
 
 	root.free()
 

@@ -157,6 +157,10 @@ Automated: `godot --headless --path godot --script res://tools/smoke_test_phase3
 | Bell Ringer poise breaks | Auto | ✅ | Committing past the threshold staggers it |
 | Crawler leaps at mid-range | Auto | ✅ | Leaps to close 3–6.5m, verified with the player pinned |
 | Crawler does not leap point blank | Auto | ✅ | Swipes instead of jumping over the player |
+| Enemies are animation-driven | Auto | ✅ | Every enemy resolves a real AnimationPlayer from its model |
+| Animation clip names resolve | Auto | ✅ | No configured clip is missing — a misspelled name leaves the enemy sliding in a T-pose, silently |
+| Models sit on the ground | Manual | ⬜ | No floating or sunken enemies; scale matches the collision capsule |
+| Animations read at speed | Manual | ⬜ | Run cycles match movement speed without foot sliding; attacks land with the telegraph |
 | Mixed encounter reads | Manual | ⬜ | Crawlers, Choir and Ringer together demand different answers, not the same one |
 | Silhouettes distinguishable | Manual | ⬜ | Low/wide crawler, tall/thin choir, bulky ringer readable at distance and in fog |
 | Telegraphs readable | Manual | ⬜ | Each wind-up flash is visible in time to react; Ringer's is longest |

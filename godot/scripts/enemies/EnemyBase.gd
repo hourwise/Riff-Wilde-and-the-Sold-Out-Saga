@@ -13,6 +13,9 @@ signal damaged(event: DamageEvent)
 @export var show_debug_health_label: bool = false
 @export var hit_flash_duration: float = 0.16
 @export var hit_flash_energy: float = 3.2
+## Multiplied into the model's albedo at spawn. Three enemies share one skeleton
+## model, so tint is what keeps them readable as distinct creatures.
+@export var visual_tint: Color = Color(1.0, 1.0, 1.0, 1.0)
 
 const HIT_FLASH_COLOUR: Color = Color(1.0, 0.92, 0.78)
 
@@ -20,11 +23,18 @@ var current_health: float = max_health
 var is_dead: bool = false
 var is_knocked_down: bool = false
 var reaction_tween: Tween = null
-var _hit_flash_material: StandardMaterial3D = null
+## Materials copied per instance so flashing one enemy does not flash them all.
+var _flash_materials: Array[StandardMaterial3D] = []
 var _hit_flash_tween: Tween = null
+## Neutral pose of the visual root, restored after knockdown and hit reactions.
+var _visual_rest_position: Vector3 = Vector3.ZERO
+var _visual_rest_scale: Vector3 = Vector3.ONE
 
 @onready var hurtbox: Hurtbox = get_node_or_null("Hurtbox") as Hurtbox
-@onready var mesh: MeshInstance3D = get_node_or_null("MeshInstance3D") as MeshInstance3D
+## The node that gets turned, squashed and knocked over. Typed Node3D rather than
+## MeshInstance3D so an enemy can be either a placeholder primitive or a rigged
+## model with its meshes nested under a skeleton.
+@onready var mesh: Node3D = _resolve_visual_root()
 @onready var health_label: Label3D = get_node_or_null("Label3D") as Label3D
 @onready var status_bars: Node = get_node_or_null("EnemyStatusBars")
 
@@ -34,9 +44,22 @@ func _ready() -> void:
 		hurtbox.damaged.connect(_on_damaged)
 	if health_label:
 		health_label.visible = show_debug_health_label
+	if mesh != null:
+		_visual_rest_position = mesh.position
+		_visual_rest_scale = mesh.scale
 	update_health_label()
-	_cache_hit_flash_material()
+	_cache_flash_materials()
 	EventBus.enemy_spawned.emit(self)
+
+
+## Prefers an explicit CharacterVisual, so rigged enemies rotate the node that
+## holds their model and animation player. Falls back to a bare mesh for
+## placeholder enemies built from primitives.
+func _resolve_visual_root() -> Node3D:
+	var character_visual := get_node_or_null("CharacterVisual") as Node3D
+	if character_visual != null:
+		return character_visual
+	return get_node_or_null("MeshInstance3D") as Node3D
 
 func _on_damaged(event: DamageEvent) -> void:
 	if is_dead:
@@ -86,15 +109,19 @@ func apply_knockdown(duration: float) -> void:
 		is_knocked_down = false
 		return
 
+	# Drop toward the ground from wherever the visual normally sits, rather than
+	# assuming a fixed height — rigged models and primitives rest differently.
+	var floored: float = _visual_rest_position.y - 0.4
+
 	reset_reaction_tween()
 	reaction_tween.set_parallel(true)
 	reaction_tween.tween_property(mesh, "rotation:x", deg_to_rad(90.0), 0.12)
-	reaction_tween.tween_property(mesh, "position:y", 0.4, 0.12)
+	reaction_tween.tween_property(mesh, "position:y", floored, 0.12)
 	reaction_tween.set_parallel(false)
 	reaction_tween.tween_interval(duration)
 	reaction_tween.set_parallel(true)
 	reaction_tween.tween_property(mesh, "rotation:x", 0.0, 0.2)
-	reaction_tween.tween_property(mesh, "position:y", 0.8, 0.2)
+	reaction_tween.tween_property(mesh, "position:y", _visual_rest_position.y, 0.2)
 	reaction_tween.set_parallel(false)
 	reaction_tween.tween_callback(func() -> void:
 		is_knocked_down = false
@@ -110,43 +137,64 @@ func play_hit_flash() -> void:
 ## colour and a longer fade, for attack telegraphs — both need to read at distance
 ## and through fog, which silhouette animation alone does not achieve.
 func flash(colour: Color, energy: float, duration: float) -> void:
-	if _hit_flash_material == null:
+	if _flash_materials.is_empty():
 		return
 
 	if _hit_flash_tween:
 		_hit_flash_tween.kill()
 
-	_hit_flash_material.emission_enabled = true
-	_hit_flash_material.emission = colour
-	_hit_flash_material.emission_energy_multiplier = energy
+	for material: StandardMaterial3D in _flash_materials:
+		material.emission_enabled = true
+		material.emission = colour
+		material.emission_energy_multiplier = energy
 
 	_hit_flash_tween = create_tween()
-	_hit_flash_tween.tween_property(
-		_hit_flash_material, "emission_energy_multiplier", 0.0, duration
-	)
+	_hit_flash_tween.set_parallel(true)
+	for material: StandardMaterial3D in _flash_materials:
+		_hit_flash_tween.tween_property(material, "emission_energy_multiplier", 0.0, duration)
+	_hit_flash_tween.set_parallel(false)
 	_hit_flash_tween.tween_callback(func() -> void:
-		_hit_flash_material.emission_enabled = false
+		for material: StandardMaterial3D in _flash_materials:
+			material.emission_enabled = false
 	)
 
 
-## Takes a unique copy of the mesh material so flashing one enemy does not flash
-## every enemy sharing the same material resource.
-func _cache_hit_flash_material() -> void:
+## Takes a unique copy of every surface material under the visual root, so
+## flashing one enemy does not flash every enemy sharing the same resource.
+##
+## Walks the whole subtree because a rigged model's meshes sit under a skeleton
+## rather than directly on the enemy, and may have several surfaces each.
+func _cache_flash_materials() -> void:
 	if mesh == null:
 		return
 
-	# Only override a material that already exists — installing a fresh one where
-	# there was none would repaint the enemy default white.
-	var source: Material = mesh.get_active_material(0)
-	if source == null:
-		return
+	for mesh_instance: MeshInstance3D in _collect_mesh_instances(mesh):
+		if mesh_instance.mesh == null:
+			continue
 
-	var duplicated := source.duplicate() as StandardMaterial3D
-	if duplicated == null:
-		return
+		for surface in range(mesh_instance.mesh.get_surface_count()):
+			# Only override a material that already exists — installing a fresh
+			# one where there was none would repaint the enemy default white.
+			var source: Material = mesh_instance.get_active_material(surface)
+			if source == null:
+				continue
 
-	_hit_flash_material = duplicated
-	mesh.set_surface_override_material(0, _hit_flash_material)
+			var duplicated := source.duplicate() as StandardMaterial3D
+			if duplicated == null:
+				continue
+
+			duplicated.albedo_color *= visual_tint
+			mesh_instance.set_surface_override_material(surface, duplicated)
+			_flash_materials.append(duplicated)
+
+
+func _collect_mesh_instances(node: Node) -> Array[MeshInstance3D]:
+	var found: Array[MeshInstance3D] = []
+	if node is MeshInstance3D:
+		found.append(node as MeshInstance3D)
+	for child in node.get_children():
+		found.append_array(_collect_mesh_instances(child))
+	return found
 
 
 func play_hit_reaction() -> void:
@@ -154,10 +202,10 @@ func play_hit_reaction() -> void:
 		return
 
 	reset_reaction_tween()
-	mesh.rotation = Vector3.ZERO
-	mesh.position = Vector3(0.0, 0.8, 0.0)
-	reaction_tween.tween_property(mesh, "scale", Vector3(1.2, 0.8, 1.2), 0.05)
-	reaction_tween.tween_property(mesh, "scale", Vector3.ONE, 0.12)
+	mesh.rotation = Vector3(0.0, mesh.rotation.y, 0.0)
+	mesh.position = _visual_rest_position
+	reaction_tween.tween_property(mesh, "scale", _visual_rest_scale * Vector3(1.2, 0.8, 1.2), 0.05)
+	reaction_tween.tween_property(mesh, "scale", _visual_rest_scale, 0.12)
 
 func die() -> void:
 	if is_dead:

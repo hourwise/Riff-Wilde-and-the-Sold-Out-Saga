@@ -72,7 +72,8 @@ func _start_leap() -> void:
 
 	flash(TELEGRAPH_COLOUR, 2.6, 0.35)
 	if visual != null:
-		visual.play_attack(0)
+		# Index 1 is the jump clip; index 0 is the ordinary swipe.
+		visual.play_attack(1)
 	AudioManager.play_sfx_3d(&"gravecrawler_leap", global_position)
 
 

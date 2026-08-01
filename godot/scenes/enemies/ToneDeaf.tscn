@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://tone_deaf_enemy"]
+[gd_scene load_steps=10 format=3 uid="uid://tone_deaf_enemy"]
 
 [ext_resource type="Script" path="res://scripts/enemies/ToneDeafAI.gd" id="1_ai"]
 [ext_resource type="Script" path="res://scripts/combat/Hurtbox.gd" id="2_hurtbox"]
@@ -6,58 +6,49 @@
 [ext_resource type="Script" path="res://scripts/enemies/EnemySteering.gd" id="4_steering"]
 [ext_resource type="Script" path="res://scripts/characters/CharacterVisual.gd" id="5_visual"]
 [ext_resource type="Resource" path="res://resources/enemies/tone_deaf.tres" id="6_stats"]
+[ext_resource type="PackedScene" path="res://Animated Monster Pack by @Quaternius/FBX/Skeleton.fbx" id="7_model"]
 
-[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_tone_deaf"]
+[sub_resource type="CapsuleShape3D" id="Shape_body"]
 radius = 0.4
 height = 1.6
 
-[sub_resource type="CapsuleMesh" id="CapsuleMesh_tone_deaf"]
-radius = 0.4
-height = 1.6
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_tone_deaf"]
-albedo_color = Color(0.35, 0.65, 0.28, 1)
-roughness = 0.65
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
-size = Vector3(1.0, 1.8, 1.0)
+[sub_resource type="BoxShape3D" id="Shape_hurtbox"]
+size = Vector3(1.0, 1.6, 1.0)
 
 [node name="ToneDeaf" type="CharacterBody3D"]
 collision_layer = 4
 collision_mask = 3
 script = ExtResource("1_ai")
 stats = ExtResource("6_stats")
+visual_tint = Color(0.72, 0.95, 0.68, 1)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
-shape = SubResource("CapsuleShape3D_tone_deaf")
+shape = SubResource("Shape_body")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
-mesh = SubResource("CapsuleMesh_tone_deaf")
-surface_material_override/0 = SubResource("StandardMaterial3D_tone_deaf")
-
+; CharacterVisual is the node the AI turns, squashes and knocks over, and it
+; hosts the model so its AnimationPlayer is found automatically.
 [node name="CharacterVisual" type="Node3D" parent="."]
 script = ExtResource("5_visual")
-procedural_mesh_path = NodePath("../MeshInstance3D")
+idle_animation = &"SkeletonArmature|Skeleton_Idle"
+run_animation = &"SkeletonArmature|Skeleton_Running"
+attack_animations = Array[StringName]([&"SkeletonArmature|Skeleton_Attack"])
+death_animation = &"SkeletonArmature|Skeleton_Death"
+run_speed_scale = 1.3
+procedural_mesh_path = NodePath(".")
+
+[node name="Model" parent="CharacterVisual" instance=ExtResource("7_model")]
+transform = Transform3D(0.33, 0, 0, 0, 0.33, 0, 0, 0, 0.33, 0, 0, 0)
 
 [node name="Hurtbox" type="Area3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
 script = ExtResource("2_hurtbox")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
-shape = SubResource("BoxShape3D_hurtbox")
+shape = SubResource("Shape_hurtbox")
 
 [node name="LockOnPoint" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
-
-[node name="Label3D" type="Label3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.8, 0)
-visible = false
-billboard = 1
-text = "Tone Deaf"
-font_size = 28
-outline_size = 8
 
 [node name="EnemyStatusBars" type="Node3D" parent="."]
 transform = Transform3D(1.25, 0, 0, 0, 1.25, 0, 0, 0, 1.25, 0, 2.05, 0)
@@ -68,8 +59,9 @@ bar_height = 0.07
 [node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
 path_desired_distance = 0.5
 target_desired_distance = 1.4
-radius = 0.45
+radius = 0.4
 height = 1.6
 
 [node name="EnemySteering" type="Node" parent="."]
 script = ExtResource("4_steering")
+separation_radius = 1.4

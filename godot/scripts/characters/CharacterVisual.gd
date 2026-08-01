@@ -58,6 +58,26 @@ func has_animations() -> bool:
 	return _animation_player != null
 
 
+## Configured clip names that the model does not actually contain.
+##
+## A misspelled or renamed clip fails silently — playback is simply skipped and
+## the character stands still — so this exists to make that visible to tests and
+## to anyone swapping in a new model.
+func get_missing_clips() -> Array[StringName]:
+	var missing: Array[StringName] = []
+	if _animation_player == null:
+		return missing
+
+	var configured: Array[StringName] = [idle_animation, run_animation, hit_animation, death_animation, dodge_animation]
+	configured.append_array(attack_animations)
+
+	for clip: StringName in configured:
+		if clip != &"" and not _animation_player.has_animation(String(clip)):
+			missing.append(clip)
+
+	return missing
+
+
 ## speed_ratio is current speed divided by maximum speed, 0..1.
 func play_locomotion(speed_ratio: float) -> void:
 	# Death and one-shot reactions own the visual until they finish.

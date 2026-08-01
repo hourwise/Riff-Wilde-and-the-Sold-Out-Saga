@@ -32,6 +32,7 @@ func _initialize() -> void:
 
 	_test_stats_resources()
 	_test_scene_structure()
+	await _test_enemy_animations()
 	await _test_choir_interrupt()
 	await _test_choir_buff()
 	await _test_bell_ringer_poise()
@@ -102,6 +103,32 @@ func _test_scene_structure() -> void:
 		_check(enemy.get("stats") != null, "%s has stats assigned" % name)
 
 		enemy.free()
+
+
+## Rigged enemies must actually be driven by their model's AnimationPlayer, with
+## every configured clip present. A renamed or misspelled clip is skipped
+## silently, leaving the enemy sliding around in a T-pose.
+func _test_enemy_animations() -> void:
+	for entry: Dictionary in ROSTER:
+		# Spawned well away from the player so nothing reacts during the check.
+		var enemy: Node3D = await _spawn(String(entry["scene"]), Vector3(0.0, 0.6, -60.0))
+		if enemy == null:
+			continue
+
+		var visual := enemy.get_node_or_null("CharacterVisual") as CharacterVisual
+		if not _check(visual != null, "%s has a CharacterVisual" % enemy.name):
+			enemy.queue_free()
+			continue
+
+		if _check(visual.has_animations(), "%s is driven by an AnimationPlayer" % enemy.name):
+			var missing: Array[StringName] = visual.get_missing_clips()
+			_check(
+				missing.is_empty(),
+				"%s clip names all resolve%s" % [enemy.name, "" if missing.is_empty() else " (missing: %s)" % str(missing)]
+			)
+
+		enemy.queue_free()
+		await physics_frame
 
 
 func _test_choir_interrupt() -> void:
