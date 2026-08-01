@@ -145,10 +145,25 @@ func _update_facing(direction: Vector3, delta: float) -> void:
 		if to_target.length_squared() > 0.01:
 			face_direction = to_target.normalized()
 
-	if face_direction == Vector3.ZERO:
+	_face_world_direction(face_direction, delta)
+
+
+## Turns the mesh to face a WORLD-space direction.
+##
+## mesh.rotation is local to the player body, and a level may place that body at
+## any yaw — the Inn rotates it 45 degrees. Assigning a world angle straight to a
+## local rotation offsets the character by the body's own yaw, which reads as Riff
+## walking and striking off to one side. Convert into body space first.
+func _face_world_direction(direction: Vector3, delta: float) -> void:
+	if direction == Vector3.ZERO:
 		return
 
-	var target_angle: float = atan2(-face_direction.x, -face_direction.z)
+	var local_direction: Vector3 = global_transform.basis.orthonormalized().inverse() * direction
+	local_direction.y = 0.0
+	if local_direction.length_squared() < 0.0001:
+		return
+
+	var target_angle: float = atan2(-local_direction.x, -local_direction.z)
 	mesh.rotation.y = lerp_angle(mesh.rotation.y, target_angle, turn_speed * delta)
 
 
@@ -197,7 +212,7 @@ func _process_dodge(delta: float) -> void:
 
 	# Face the dodge direction unless locked on, where facing the target matters more.
 	if not lock_on.has_target():
-		mesh.rotation.y = lerp_angle(mesh.rotation.y, atan2(-dodge_direction.x, -dodge_direction.z), turn_speed * delta)
+		_face_world_direction(dodge_direction, delta)
 	else:
 		_update_facing(Vector3.ZERO, delta)
 

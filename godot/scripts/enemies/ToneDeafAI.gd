@@ -188,11 +188,19 @@ func _get_chase_direction(to_chase_target: Vector3, chase_target_position: Vecto
 
 	return _apply_steering(desired_direction)
 
+## direction is world-space; mesh.rotation is local to this body, which a level may
+## place at any yaw. Convert first, or the enemy faces off to one side of whatever
+## it is chasing.
 func _face_direction(direction: Vector3, delta: float) -> void:
 	if not mesh or direction == Vector3.ZERO:
 		return
 
-	var target_angle: float = atan2(-direction.x, -direction.z)
+	var local_direction: Vector3 = global_transform.basis.orthonormalized().inverse() * direction
+	local_direction.y = 0.0
+	if local_direction.length_squared() < 0.0001:
+		return
+
+	var target_angle: float = atan2(-local_direction.x, -local_direction.z)
 	mesh.rotation.y = lerp_angle(mesh.rotation.y, target_angle, 8.0 * delta)
 
 func _apply_steering(desired_direction: Vector3) -> Vector3:

@@ -315,10 +315,59 @@ func _test_locked_movement(player: Node3D) -> void:
 			% [strafe_start, strafe_distance]
 	)
 
+	await _test_rotated_body(player, rig, lock_on, enemy)
+
 	lock_on.call("clear")
 	enemy.queue_free()
 	platform.queue_free()
 	await physics_frame
+
+
+## Levels may place the player body at any yaw — the Inn rotates it 45 degrees,
+## the arena leaves it at identity. mesh.rotation and the rig's rotation are both
+## LOCAL to that body, so writing a world-space angle into either offsets the
+## character by the body's own yaw. Everything above runs in the arena, where the
+## body is at identity, so this class of bug is invisible without rotating it.
+func _test_rotated_body(player: Node3D, rig: Node3D, lock_on: Node, enemy: Node3D) -> void:
+	var original_yaw: float = player.rotation.y
+	player.rotation.y = deg_to_rad(45.0)
+	var mesh := player.get("mesh") as Node3D
+
+	# Free movement: the mesh must face where the player actually travels.
+	lock_on.call("clear")
+	await _reset_pair(player, enemy)
+	var origin: Vector3 = player.global_position
+	await _hold_action("move_forward", 20)
+
+	var travelled: Vector3 = player.global_position - origin
+	travelled.y = 0.0
+	var mesh_forward: Vector3 = -mesh.global_transform.basis.z
+	mesh_forward.y = 0.0
+
+	if _check(travelled.length() > 0.3, "player moves with the body rotated"):
+		var alignment: float = mesh_forward.normalized().dot(travelled.normalized())
+		_check(
+			alignment > 0.95,
+			"mesh faces the direction of travel with the body rotated (dot %.3f)" % alignment
+		)
+
+	# Locked on: the camera must still aim at the target, not off by the body yaw.
+	await _reset_pair(player, enemy)
+	lock_on.call("toggle")
+	for i in range(40):
+		await physics_frame
+
+	var to_target: Vector3 = enemy.global_position - player.global_position
+	to_target.y = 0.0
+	var rig_forward: Vector3 = -rig.global_transform.basis.z
+	rig_forward.y = 0.0
+	var facing: float = rig_forward.normalized().dot(to_target.normalized())
+	_check(facing > 0.9, "camera faces the target with the body rotated (dot %.3f)" % facing)
+
+	var mesh_to_target: float = (-mesh.global_transform.basis.z * Vector3(1, 0, 1)).normalized().dot(to_target.normalized())
+	_check(mesh_to_target > 0.9, "mesh faces the target with the body rotated (dot %.3f)" % mesh_to_target)
+
+	player.rotation.y = original_yaw
 
 
 ## Returns the player and target to a known separation and lets them settle, so

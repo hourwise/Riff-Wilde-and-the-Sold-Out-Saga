@@ -128,6 +128,7 @@ Automated: `godot --headless --path godot --script res://tools/smoke_test_phase2
 | Camera faces the locked target | Auto | ✅ | Rig forward points at the target, not 180° away at its back |
 | View steerable while locked | Auto | ✅ | Look input swings the view within a clamped offset, then recentres on the target |
 | Locked dodge escapes | Auto | ✅ | Dodging with no input backsteps away from the target |
+| Facing survives a rotated body | Auto | ✅ | With the player body at 45° (as the Inn places it), mesh faces travel and target, and the camera still aims at the target. Verified to fail without the fix (dot 0.707 = 45° off) |
 | Combo chain flows | Manual | ⬜ | Three strikes chain smoothly; inputs during a swing are not eaten |
 | Dodge cancels attack | Manual | ⬜ | Dodging during recovery interrupts the swing immediately |
 | Hitstop feels weighty | Manual | ⬜ | Finisher freezes noticeably harder than a light hit; no stalling on rapid hits |

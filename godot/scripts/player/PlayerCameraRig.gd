@@ -164,10 +164,21 @@ func _track_lock_target(delta: float) -> void:
 	if to_target.length_squared() < 0.01:
 		return
 
+	# rotation.y is local to whatever this rig is parented to, and the player body
+	# may itself be placed at any yaw (the Inn rotates it 45 degrees). Convert the
+	# direction into the parent's space, or the camera aims off by the body's yaw.
+	var parent := get_parent_node_3d()
+	var local_to_target: Vector3 = to_target
+	if parent != null:
+		local_to_target = parent.global_transform.basis.orthonormalized().inverse() * to_target
+		local_to_target.y = 0.0
+		if local_to_target.length_squared() < 0.01:
+			return
+
 	# A Node3D's forward is -Z, so the yaw that points forward along d is
 	# atan2(-d.x, -d.z). Dropping the negations aims the rig directly AWAY from
 	# the target — the camera ends up staring at the enemy's back.
-	var yaw_to_target: float = atan2(-to_target.x, -to_target.z)
+	var yaw_to_target: float = atan2(-local_to_target.x, -local_to_target.z)
 
 	# Let an unattended offset drift back onto the target so the camera recovers
 	# on its own after the player glances aside.
