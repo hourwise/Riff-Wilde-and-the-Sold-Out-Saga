@@ -1,6 +1,6 @@
 extends Node3D
 
-const MISSION_SCENE_PATH := "res://scenes/levels/PrototypeArena.tscn"
+const MISSION_SCENE_PATH := "res://scenes/levels/ChurchGraveyard.tscn"
 
 var prompt_label: Label = null
 var mission_panel: PanelContainer = null
@@ -78,7 +78,7 @@ func _create_ui() -> void:
 	content.add_child(title)
 
 	var mission_text := Label.new()
-	mission_text.text = "Available Mission: Prototype Arena\n\nEnter the arena, test combat flow, and return here once mission extraction exists."
+	mission_text.text = "Available Mission: The Church Graveyard\n\nSomething has corrupted the old cemetery. Four Funeral Altars still burn wrong. Cleanse them all, and whatever is conducting this will come out to meet you."
 	mission_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	mission_text.add_theme_font_size_override("font_size", 22)
 	content.add_child(mission_text)
@@ -124,8 +124,8 @@ func _launch_mission() -> void:
 	GameManager.change_state(GameManager.GameState.MISSION)
 	var progression_manager := get_node_or_null("/root/ProgressionManager")
 	if progression_manager and progression_manager.has_method("start_mission"):
-		progression_manager.call("start_mission", "prototype_arena")
-	SceneLoader.load_scene(MISSION_SCENE_PATH)
+		progression_manager.call("start_mission", "church_graveyard")
+	SceneLoader.load_scene(MISSION_SCENE_PATH, &"from_inn")
 
 func _show_last_mission_results() -> void:
 	var progression_manager := get_node_or_null("/root/ProgressionManager")
