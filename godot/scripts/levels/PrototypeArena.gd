@@ -124,9 +124,7 @@ func _extract_to_hub() -> void:
 	var progression_manager := get_node_or_null("/root/ProgressionManager")
 	if progression_manager and progression_manager.has_method("complete_mission"):
 		progression_manager.call("complete_mission")
-	var game_manager := get_node_or_null("/root/GameManager")
-	if game_manager and game_manager.has_method("change_state"):
-		game_manager.call("change_state", 0)
+	GameManager.change_state(GameManager.GameState.INN_HUB)
 	SceneLoader.load_scene(return_scene_path)
 
 func _create_runtime_navigation() -> void:

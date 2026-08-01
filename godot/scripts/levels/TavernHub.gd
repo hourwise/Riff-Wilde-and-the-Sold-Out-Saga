@@ -11,9 +11,7 @@ var results_panel_open: bool = false
 @onready var quest_board: Node = $QuestBoard
 
 func _ready() -> void:
-	var game_manager := get_node_or_null("/root/GameManager")
-	if game_manager and game_manager.has_method("change_state"):
-		game_manager.call("change_state", 0)
+	GameManager.change_state(GameManager.GameState.INN_HUB)
 
 	_create_ui()
 	_show_last_mission_results()
@@ -26,7 +24,9 @@ func _ready() -> void:
 	print("[TavernHub] Ready.")
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Panels consume the pause action so it does not also reach the pause menu.
 	if results_panel_open and event.is_action_pressed("pause"):
+		get_viewport().set_input_as_handled()
 		_close_results_panel()
 		return
 
@@ -34,6 +34,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 	if event.is_action_pressed("pause"):
+		get_viewport().set_input_as_handled()
 		_close_mission_panel()
 	elif event is InputEventKey and event.pressed and not event.echo:
 		var key_event := event as InputEventKey
@@ -120,9 +121,7 @@ func _close_mission_panel() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _launch_mission() -> void:
-	var game_manager := get_node_or_null("/root/GameManager")
-	if game_manager and game_manager.has_method("change_state"):
-		game_manager.call("change_state", 1)
+	GameManager.change_state(GameManager.GameState.MISSION)
 	var progression_manager := get_node_or_null("/root/ProgressionManager")
 	if progression_manager and progression_manager.has_method("start_mission"):
 		progression_manager.call("start_mission", "prototype_arena")

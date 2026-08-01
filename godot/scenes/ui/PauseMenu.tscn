@@ -1,0 +1,196 @@
+[gd_scene format=3 uid="uid://cljq47y7rs7xs"]
+
+[ext_resource type="Script" path="res://scripts/ui/PauseMenu.gd" id="1_pause_menu"]
+
+[node name="PauseMenu" type="CanvasLayer"]
+process_mode = 3
+layer = 64
+visible = false
+script = ExtResource("1_pause_menu")
+
+[node name="Dim" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0156863, 0.0156863, 0.0313726, 0.72)
+
+[node name="RootMenu" type="CenterContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="RootMenu"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="RootMenu/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 36
+theme_override_constants/margin_top = 32
+theme_override_constants/margin_right = 36
+theme_override_constants/margin_bottom = 32
+
+[node name="Content" type="VBoxContainer" parent="RootMenu/Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Title" type="Label" parent="RootMenu/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
+text = "PAUSED"
+horizontal_alignment = 1
+
+[node name="Spacer" type="Control" parent="RootMenu/Panel/Margin/Content"]
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+
+[node name="ResumeButton" type="Button" parent="RootMenu/Panel/Margin/Content"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Resume"
+
+[node name="SettingsButton" type="Button" parent="RootMenu/Panel/Margin/Content"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Settings"
+
+[node name="QuitToInnButton" type="Button" parent="RootMenu/Panel/Margin/Content"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Return to the Inn"
+
+[node name="QuitGameButton" type="Button" parent="RootMenu/Panel/Margin/Content"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Quit Game"
+
+[node name="SettingsMenu" type="CenterContainer" parent="."]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="SettingsMenu"]
+custom_minimum_size = Vector2(620, 0)
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="SettingsMenu/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 36
+theme_override_constants/margin_top = 32
+theme_override_constants/margin_right = 36
+theme_override_constants/margin_bottom = 32
+
+[node name="Content" type="VBoxContainer" parent="SettingsMenu/Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="Title" type="Label" parent="SettingsMenu/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 34
+text = "SETTINGS"
+horizontal_alignment = 1
+
+[node name="Options" type="GridContainer" parent="SettingsMenu/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_constants/h_separation = 24
+theme_override_constants/v_separation = 16
+columns = 2
+
+[node name="MasterLabel" type="Label" parent="SettingsMenu/Panel/Margin/Content/Options"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Master Volume"
+
+[node name="MasterSlider" type="HSlider" parent="SettingsMenu/Panel/Margin/Content/Options"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 4
+max_value = 1.0
+step = 0.05
+
+[node name="MusicLabel" type="Label" parent="SettingsMenu/Panel/Margin/Content/Options"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Music Volume"
+
+[node name="MusicSlider" type="HSlider" parent="SettingsMenu/Panel/Margin/Content/Options"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 4
+max_value = 1.0
+step = 0.05
+
+[node name="SfxLabel" type="Label" parent="SettingsMenu/Panel/Margin/Content/Options"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Sound Effects"
+
+[node name="SfxSlider" type="HSlider" parent="SettingsMenu/Panel/Margin/Content/Options"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 4
+max_value = 1.0
+step = 0.05
+
+[node name="MouseLabel" type="Label" parent="SettingsMenu/Panel/Margin/Content/Options"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Mouse Sensitivity"
+
+[node name="MouseSlider" type="HSlider" parent="SettingsMenu/Panel/Margin/Content/Options"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 4
+min_value = 0.0005
+max_value = 0.008
+step = 0.0005
+
+[node name="GamepadLabel" type="Label" parent="SettingsMenu/Panel/Margin/Content/Options"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Gamepad Sensitivity"
+
+[node name="GamepadSlider" type="HSlider" parent="SettingsMenu/Panel/Margin/Content/Options"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 4
+min_value = 0.5
+max_value = 6.0
+step = 0.1
+
+[node name="InvertYLabel" type="Label" parent="SettingsMenu/Panel/Margin/Content/Options"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Invert Camera Y"
+
+[node name="InvertYCheck" type="CheckButton" parent="SettingsMenu/Panel/Margin/Content/Options"]
+layout_mode = 2
+size_flags_horizontal = 0
+
+[node name="Buttons" type="HBoxContainer" parent="SettingsMenu/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 2
+
+[node name="ResetButton" type="Button" parent="SettingsMenu/Panel/Margin/Content/Buttons"]
+custom_minimum_size = Vector2(160, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Defaults"
+
+[node name="BackButton" type="Button" parent="SettingsMenu/Panel/Margin/Content/Buttons"]
+custom_minimum_size = Vector2(160, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Back"

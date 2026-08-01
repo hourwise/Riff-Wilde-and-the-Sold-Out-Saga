@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3 uid="uid://d1f2a3b4c5d6"]
+[gd_scene load_steps=18 format=3 uid="uid://d1f2a3b4c5d6"]
 
 [ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://scenes/enemies/TrainingDummy.tscn" id="2_dummy"]
@@ -7,6 +7,7 @@
 [ext_resource type="PackedScene" path="res://scenes/enemies/IroncladWarden.tscn" id="5_warden"]
 [ext_resource type="Script" path="res://scripts/interactables/ScoutingMarker.gd" id="6_scouting_marker"]
 [ext_resource type="Script" path="res://scripts/interactables/ExtractionPoint.gd" id="7_extraction_point"]
+[ext_resource type="Script" path="res://scripts/levels/EnvironmentBuilder.gd" id="8_env_builder"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_arena"]
 sky_horizon_color = Color(0.64625, 0.65575, 0.67075, 1)
@@ -63,31 +64,21 @@ transform = Transform3D(-0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, 0.75
 shadow_enabled = true
 
 [node name="Environment" type="Node3D" parent="."]
-
-[node name="Floor" type="CSGBox3D" parent="Environment"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
-use_collision = true
-size = Vector3(50, 1, 50)
-
-[node name="Wall_North" type="CSGBox3D" parent="Environment"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, -25)
-use_collision = true
-size = Vector3(50, 5, 1)
-
-[node name="Wall_South" type="CSGBox3D" parent="Environment"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 25)
-use_collision = true
-size = Vector3(50, 5, 1)
-
-[node name="Wall_East" type="CSGBox3D" parent="Environment"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 2.5, 0)
-use_collision = true
-size = Vector3(1, 5, 50)
-
-[node name="Wall_West" type="CSGBox3D" parent="Environment"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25, 2.5, 0)
-use_collision = true
-size = Vector3(1, 5, 50)
+script = ExtResource("8_env_builder")
+arena_size = 50.0
+wall_height_levels = 2
+floor_tile_size = 4.0
+wall_segment_size = 4.0
+wall_segment_height = 4.0
+floor_piece_path = "res://glTF/Floor_Brick.gltf"
+wall_piece_path = "res://glTF/Wall_Plaster_Straight.gltf"
+wall_piece_variant_path = "res://glTF/Wall_UnevenBrick_Straight.gltf"
+corner_piece_path = "res://glTF/Corner_Exterior_Brick.gltf"
+tree_piece_path = "res://Models/GLTF format/tree_tall.glb"
+tree_thin_path = "res://Models/GLTF format/tree_thin.glb"
+variant_wall_chance = 0.35
+tree_spawn_chance = 0.4
+tree_offset_distance = 4.0
 
 [node name="Platform1" type="CSGBox3D" parent="Environment"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0.5, -10)

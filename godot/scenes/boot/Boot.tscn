@@ -1,8 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://c1a2b3c4d5e6"]
+[gd_scene format=3 uid="uid://c1a2b3c4d5e6"]
 
-[ext_resource type="Script" path="res://scenes/boot/Boot.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://crd6orkderdho" path="res://scenes/boot/Boot.gd" id="1_script"]
 
-[node name="Boot" type="Control"]
+[node name="Boot" type="Control" unique_id=60457177]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,16 +11,16 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_script")
 
-[node name="ColorRect" type="ColorRect" parent="."]
+[node name="ColorRect" type="ColorRect" parent="." unique_id=1461024928]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.098, 0.098, 0.098, 1.)
+color = Color(0.098, 0.098, 0.098, 1)
 
-[node name="Label" type="Label" parent="."]
+[node name="Label" type="Label" parent="." unique_id=10719567]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5

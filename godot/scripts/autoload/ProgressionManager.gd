@@ -84,6 +84,7 @@ func complete_mission() -> Dictionary:
 	add_xp(xp_awarded)
 	mission_active = false
 	print("[ProgressionManager] Mission complete. XP awarded: %d" % xp_awarded)
+	_trigger_cloud_sync()
 	return last_mission_summary
 
 func consume_last_mission_summary() -> Dictionary:
@@ -129,3 +130,33 @@ func _save_progression() -> void:
 
 func _recalculate_level() -> void:
 	current_level = max(1, int(floor(float(current_xp) / 500.0)) + 1)
+
+func _trigger_cloud_sync() -> void:
+	var cloud_sync := get_node_or_null("/root/CloudSyncService")
+	if not cloud_sync or not cloud_sync.has_method("upload_player_data"):
+		return
+
+	var user_id: String = _get_local_user_id()
+	var data: Dictionary = get_progression_save_data()
+	data["last_mission_summary"] = last_mission_summary
+	data["last_updated"] = Time.get_datetime_string_from_system()
+	cloud_sync.upload_player_data(user_id, data)
+
+func _get_local_user_id() -> String:
+	var path: String = "user://device_id.txt"
+	if FileAccess.file_exists(path):
+		var file := FileAccess.open(path, FileAccess.READ)
+		if file:
+			var id: String = file.get_as_text().strip_edges()
+			file.close()
+			if not id.is_empty():
+				return id
+
+	# Generate a new device ID — strip curly braces from Windows unique IDs.
+	var raw_id: String = OS.get_unique_id().replace("{", "").replace("}", "")
+	var new_id: String = "%s_%d" % [raw_id, Time.get_unix_time_from_system()]
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file:
+		file.store_string(new_id)
+		file.close()
+	return new_id

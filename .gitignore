@@ -19,3 +19,9 @@ Thumbs.db
 # Export directories
 exports/
 godot/exports/
+
+# Secrets / local config (never commit)
+firebase.cfg
+*.env
+*.pem
+*.key

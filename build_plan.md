@@ -288,7 +288,7 @@ Build the local file saving system.
   - **Automated Check:** Passed. Isolated test save persisted XP and unlocked skill, then reloaded both into `ProgressionManager`.
   - **Manual Verification:** Play the game, earn XP, and close the application. Re-open and verify the total XP matches the end of the previous session.
 
-### [ ] Step 7.2: Database Choice & Configuration (Firebase Free Tier)
+### [x] Step 7.2: Database Choice & Configuration (Firebase Free Tier)
 Configure connections under the specified database constraints.
 - **Tasks:**
   - **Constraint Rules Configured:**
@@ -296,6 +296,11 @@ Configure connections under the specified database constraints.
     - Cloud syncing behaves asynchronously and does not block loading or progression.
   - Create a Firebase configuration script using Firebase REST API URLs pointing to Firestore (Spark Plan).
   - Use `HTTPRequest` nodes to send GET/POST payloads for database storage.
+- **Implemented:**
+  - `FirebaseConfig.gd` autoload reads config from `user://firebase.cfg`.
+  - `CloudSyncService.gd` autoload handles async HTTP requests.
+  - `ProgressionManager` triggers cloud sync on mission completion.
+  - Config template at `docs/firebase_config_template.md`.
 - **Built-in Tests:**
   - **Connectivity Test:** Trigger a connection check. Verify that if the remote server is unreachable, the game prints a warning and proceeds using local files without stuttering or crashing.
 

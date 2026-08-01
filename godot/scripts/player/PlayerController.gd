@@ -153,9 +153,7 @@ func _on_health_depleted() -> void:
 	velocity = Vector3.ZERO
 	state_machine.change_state(PlayerStateMachine.State.STAGGERED)
 
-	var game_manager := get_node_or_null("/root/GameManager")
-	if game_manager and game_manager.has_method("change_state"):
-		game_manager.call("change_state", 2)
+	GameManager.change_state(GameManager.GameState.GAME_OVER)
 
 	if hud_controller and hud_controller.has_method("show_defeat_prompt"):
 		hud_controller.show_defeat_prompt()
