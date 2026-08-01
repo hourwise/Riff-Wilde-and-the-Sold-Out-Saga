@@ -11,11 +11,17 @@ signal damaged(event: DamageEvent)
 @export var knockdown_friction_multiplier: float = 2.5
 @export var death_cleanup_delay: float = 1.2
 @export var show_debug_health_label: bool = false
+@export var hit_flash_duration: float = 0.16
+@export var hit_flash_energy: float = 3.2
+
+const HIT_FLASH_COLOUR: Color = Color(1.0, 0.92, 0.78)
 
 var current_health: float = max_health
 var is_dead: bool = false
 var is_knocked_down: bool = false
 var reaction_tween: Tween = null
+var _hit_flash_material: StandardMaterial3D = null
+var _hit_flash_tween: Tween = null
 
 @onready var hurtbox: Hurtbox = get_node_or_null("Hurtbox") as Hurtbox
 @onready var mesh: MeshInstance3D = get_node_or_null("MeshInstance3D") as MeshInstance3D
@@ -29,6 +35,8 @@ func _ready() -> void:
 	if health_label:
 		health_label.visible = show_debug_health_label
 	update_health_label()
+	_cache_hit_flash_material()
+	EventBus.enemy_spawned.emit(self)
 
 func _on_damaged(event: DamageEvent) -> void:
 	if is_dead:
@@ -48,7 +56,10 @@ func _on_damaged(event: DamageEvent) -> void:
 	velocity.x = kb_velocity.x
 	velocity.z = kb_velocity.z
 
+	play_hit_flash()
+
 	if event.status_effect == &"knockdown":
+		EventBus.enemy_staggered.emit(self)
 		apply_knockdown(event.status_duration)
 	else:
 		play_hit_reaction()
@@ -89,6 +100,48 @@ func apply_knockdown(duration: float) -> void:
 		is_knocked_down = false
 	)
 
+## Flashes the enemy white on hit. Reads instantly at any distance and in fog,
+## which the squash-and-stretch reaction alone does not.
+func play_hit_flash() -> void:
+	if _hit_flash_material == null:
+		return
+
+	if _hit_flash_tween:
+		_hit_flash_tween.kill()
+
+	_hit_flash_material.emission_enabled = true
+	_hit_flash_material.emission = HIT_FLASH_COLOUR
+	_hit_flash_material.emission_energy_multiplier = hit_flash_energy
+
+	_hit_flash_tween = create_tween()
+	_hit_flash_tween.tween_property(
+		_hit_flash_material, "emission_energy_multiplier", 0.0, hit_flash_duration
+	)
+	_hit_flash_tween.tween_callback(func() -> void:
+		_hit_flash_material.emission_enabled = false
+	)
+
+
+## Takes a unique copy of the mesh material so flashing one enemy does not flash
+## every enemy sharing the same material resource.
+func _cache_hit_flash_material() -> void:
+	if mesh == null:
+		return
+
+	# Only override a material that already exists — installing a fresh one where
+	# there was none would repaint the enemy default white.
+	var source: Material = mesh.get_active_material(0)
+	if source == null:
+		return
+
+	var duplicated := source.duplicate() as StandardMaterial3D
+	if duplicated == null:
+		return
+
+	_hit_flash_material = duplicated
+	mesh.set_surface_override_material(0, _hit_flash_material)
+
+
 func play_hit_reaction() -> void:
 	if not mesh:
 		return
@@ -108,7 +161,7 @@ func die() -> void:
 	if progression_manager and progression_manager.has_method("record_enemy_defeated"):
 		progression_manager.call("record_enemy_defeated")
 	died.emit(self)
-	print("[%s] Defeated." % name)
+	EventBus.enemy_died.emit(self)
 	if hurtbox:
 		hurtbox.is_invulnerable = true
 	set_collision_layer_value(3, false)

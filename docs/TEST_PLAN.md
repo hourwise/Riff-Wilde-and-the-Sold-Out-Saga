@@ -109,6 +109,30 @@ Automated: `godot --headless --path godot --script res://tools/smoke_test_phase1
 | Scene fade transition | Manual | ⬜ | Boot → Inn fades to black and back; no frozen or flashing frame |
 | Return to Inn from pause | Manual | ⬜ | "Return to the Inn" unpauses and loads the hub correctly |
 
+## VS Phase 2: Combat Feel
+
+Automated: `godot --headless --path godot --script res://tools/smoke_test_phase2.gd`
+(28 checks — chain timing validity, dodge i-frame window, hitstop restore, lock-on lifecycle).
+
+| Test | Type | Status | Description |
+|---|---|---|---|
+| Chain buffer windows reachable | Auto | ✅ | Each step's `buffer_open` is inside its duration, or the chain degrades to single hits |
+| Chain has wind-up and active frames | Auto | ✅ | Every step is readable and can connect |
+| Chain damage escalates | Auto | ✅ | Finisher hits hardest |
+| Dodge i-frames are a window | Auto | ✅ | Vulnerable start-up and recovery; i-frames strictly inside the dodge |
+| Hitstop restores time scale | Auto | ✅ | `Engine.time_scale` returns to 1.0 after the freeze |
+| Lock-on acquires and releases | Auto | ✅ | Toggles on/off and announces both on EventBus |
+| Lock-on drops dead targets | Auto | ✅ | Camera never keeps framing a corpse |
+| Combo chain flows | Manual | ⬜ | Three strikes chain smoothly; inputs during a swing are not eaten |
+| Dodge cancels attack | Manual | ⬜ | Dodging during recovery interrupts the swing immediately |
+| Hitstop feels weighty | Manual | ⬜ | Finisher freezes noticeably harder than a light hit; no stalling on rapid hits |
+| Camera shake scales | Manual | ⬜ | Light hits subtle, finisher strong, taking damage strongest |
+| Hit flash reads | Manual | ⬜ | Enemies flash white on every hit, visible at distance |
+| Lock-on framing | Manual | ⬜ | Camera holds the target; Riff strafes and stays facing it |
+| Lock-on target switching | Manual | ⬜ | Right-stick or mouse flick switches to the enemy on that side only |
+| Locked backstep | Manual | ⬜ | Dodging with no input while locked steps away from the target |
+| Reticle tracks | Manual | ⬜ | Reticle sits on the target, pops in on acquire, hides when behind camera |
+
 ## Phase 8: Polish & Export
 
 | Test | Type | Status | Description |

@@ -40,18 +40,23 @@ func _process(delta: float) -> void:
 		return
 
 	if Input.is_action_just_pressed("sing") and not is_singing:
-		# Can only sing if not dodging or staggered
-		if player.state_machine.current_state != PlayerStateMachine.State.DODGE and player.state_machine.current_state != PlayerStateMachine.State.STAGGERED:
-			var breath_cost: float = _get_current_breath_cost()
-			if player.stats.use_breath(breath_cost):
-				var combo_id: StringName = &""
-				if player.combat_buffer and player.combat_buffer.has_method("record_input"):
-					combo_id = player.combat_buffer.call("record_input", &"sing")
-				if combo_id != &"" and player.combat_buffer.has_method("accept_combo"):
-					player.combat_buffer.call("accept_combo", combo_id)
-				trigger_sing(combo_id)
-			else:
-				print("[SingController] Not enough Breath! Required: %.1f, available: %.1f" % [breath_cost, player.stats.breath])
+		# Singing is locked out while dodging or staggered.
+		if player.is_dodging or player.state_machine.current_state == PlayerStateMachine.State.STAGGERED:
+			return
+
+		var breath_cost: float = _get_current_breath_cost()
+		if not player.stats.use_breath(breath_cost):
+			AudioManager.play_ui(&"ui_back")
+			return
+
+		var combo_id: StringName = &""
+		if player.combat_buffer:
+			combo_id = player.combat_buffer.record_input(&"sing")
+		if combo_id != &"":
+			player.combat_buffer.accept_combo(combo_id)
+			EventBus.combo_completed.emit(combo_id)
+		trigger_sing(combo_id)
+		AudioManager.play_sfx(&"riff_sing_blast")
 
 func trigger_sing(combo_id: StringName = &"") -> void:
 	is_singing = true

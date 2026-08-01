@@ -17,6 +17,7 @@ enum SuspendReason { PAUSE_MENU, CINEMATIC, DIALOGUE }
 var current_state: GameState = GameState.INN_HUB
 
 var _suspend_reasons: Dictionary = {}
+var _hitstop_active: bool = false
 
 
 func _ready() -> void:
@@ -64,6 +65,34 @@ func is_suspended() -> bool:
 
 func is_suspended_by(reason: SuspendReason) -> bool:
 	return _suspend_reasons.has(reason)
+
+
+# ── Hitstop ──────────────────────────────────────────────────────
+
+## Briefly slows time on impact. This is the single largest contributor to how
+## heavy an attack feels, so it lives here rather than in any one combat script:
+## every source of impact shares one budget and they cannot stack into a freeze.
+##
+## Duration is in real seconds, independent of the slowdown applied.
+func apply_hitstop(duration: float, time_scale: float = 0.05) -> void:
+	if duration <= 0.0 or is_suspended():
+		return
+
+	# A stronger hit overrides a weaker one already running; a weaker one is
+	# ignored so rapid combo hits do not compound into a stall.
+	if _hitstop_active and time_scale >= Engine.time_scale:
+		return
+
+	_hitstop_active = true
+	Engine.time_scale = clampf(time_scale, 0.01, 1.0)
+
+	# ignore_time_scale is essential — a scaled timer would take proportionally
+	# longer to fire, stretching a 60 ms hitstop into more than a second.
+	var timer: SceneTreeTimer = get_tree().create_timer(duration, true, false, true)
+	await timer.timeout
+
+	Engine.time_scale = 1.0
+	_hitstop_active = false
 
 
 func _apply_suspend_state() -> void:

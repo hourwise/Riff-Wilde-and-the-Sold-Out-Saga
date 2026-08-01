@@ -2,13 +2,20 @@ class_name PlayerController
 extends CharacterBody3D
 
 @export var speed: float = 6.0
+@export var lock_on_speed: float = 4.6
 @export var acceleration: float = 12.0
 @export var gravity: float = 20.0
+@export var turn_speed: float = 10.0
 
-# Dodge parameters
+@export_group("Dodge")
 @export var dodge_speed: float = 18.0
 @export var dodge_duration: float = 0.25
-@export var dodge_cooldown: float = 0.8
+@export var dodge_cooldown: float = 0.55
+## Invulnerability is a window inside the dodge, not the whole move. Dodging early
+## must be rewarded and dodging late must be punished, otherwise spamming it is
+## always correct.
+@export var invulnerable_start: float = 0.04
+@export var invulnerable_end: float = 0.20
 
 var is_dodging: bool = false
 var is_invulnerable: bool = false
@@ -17,144 +24,227 @@ var dodge_timer: float = 0.0
 var dodge_cooldown_timer: float = 0.0
 var dodge_direction: Vector3 = Vector3.ZERO
 
+## Previous health, used to derive damage amounts for EventBus.player_damaged.
+var _last_health: float = 0.0
+
 @onready var state_machine: PlayerStateMachine = $PlayerStateMachine
 @onready var mesh: MeshInstance3D = $MeshInstance3D
 @onready var stats: PlayerStats = $PlayerStats
-@onready var combat_buffer: Node = $CombatBuffer
+@onready var combat_buffer: CombatBuffer = $CombatBuffer
+@onready var lock_on: LockOnController = $LockOnController
+@onready var visual: CharacterVisual = $MeshInstance3D/CharacterVisual
 
 var camera_rig: PlayerCameraRig
 var hud_controller: Control = null
 
+
 func _ready() -> void:
 	add_to_group("player")
 
-	# Locate camera rig in children, or instantiate if missing
-	camera_rig = get_node_or_null("PlayerCameraRig")
-	if not camera_rig:
-		camera_rig = get_node_or_null("../PlayerCameraRig")
-	if not camera_rig:
-		var rig_scene = load("res://scenes/player/PlayerCameraRig.tscn")
-		camera_rig = rig_scene.instantiate() as PlayerCameraRig
-		add_child(camera_rig)
-		
-	# Instantiate HUD and connect player stats
-	var hud_scene: PackedScene = preload("res://scenes/ui/HUD.tscn")
-	var hud: CanvasLayer = hud_scene.instantiate() as CanvasLayer
-	add_child(hud)
-	hud_controller = hud.get_node("HUDController") as Control
-	if hud_controller and hud_controller.has_method("setup_stats"):
-		hud_controller.setup_stats(stats)
-	if hud_controller and hud_controller.has_method("setup_combat_buffer"):
-		hud_controller.setup_combat_buffer(combat_buffer)
+	_bind_camera_rig()
+	_bind_hud()
+
+	lock_on.setup(camera_rig.camera)
+	camera_rig.set_lock_controller(lock_on)
+
+	_last_health = stats.health
 	stats.health_depleted.connect(_on_health_depleted)
-		
-	print("[PlayerController] Ready, camera rig bound, and HUD loaded.")
+	stats.health_changed.connect(_on_health_changed)
+
+	EventBus.player_spawned.emit(self)
+
 
 func _physics_process(delta: float) -> void:
 	if is_dead:
+		_apply_gravity(delta)
 		velocity.x = move_toward(velocity.x, 0.0, acceleration * delta)
 		velocity.z = move_toward(velocity.z, 0.0, acceleration * delta)
-		if not is_on_floor():
-			velocity.y -= gravity * delta
-		else:
-			velocity.y = 0.0
 		move_and_slide()
 		return
 
-	# Apply gravity
-	if not is_on_floor():
-		velocity.y -= gravity * delta
-	else:
-		velocity.y = 0.0
-		
-	# Update cooldowns
+	_apply_gravity(delta)
+
 	if dodge_cooldown_timer > 0.0:
 		dodge_cooldown_timer -= delta
-		
-	# Handle dodging
+
 	if is_dodging:
-		dodge_timer -= delta
-		if dodge_timer <= 0.0:
-			is_dodging = false
-			is_invulnerable = false
-			state_machine.change_state(PlayerStateMachine.State.IDLE)
-		else:
-			var vertical_vel = velocity.y
-			velocity = dodge_direction * dodge_speed
-			velocity.y = vertical_vel
-			move_and_slide()
-			return
+		_process_dodge(delta)
+		return
 
-	# Calculate movement inputs
-	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
-	var direction := Vector3.ZERO
-	
-	if camera_rig:
-		# Grab horizontal basis vector from camera direction
-		var cam_forward := -camera_rig.global_transform.basis.z
-		var cam_right := camera_rig.global_transform.basis.x
-		cam_forward.y = 0.0
-		cam_right.y = 0.0
-		cam_forward = cam_forward.normalized()
-		cam_right = cam_right.normalized()
-		
-		# Combine into move direction vector (negate cam_forward since move_forward corresponds to negative Y input_dir)
-		direction = (cam_right * input_dir.x - cam_forward * input_dir.y).normalized()
+	var direction: Vector3 = _get_move_direction()
 
-	# Process Dodge action
-	if Input.is_action_just_pressed("dodge") and not is_dodging and dodge_cooldown_timer <= 0.0:
+	if Input.is_action_just_pressed("dodge") and dodge_cooldown_timer <= 0.0:
 		start_dodge(direction)
 		return
 
-	# Process normal movement
 	if direction != Vector3.ZERO:
-		var target_vel := direction * speed
-		velocity.x = move_toward(velocity.x, target_vel.x, acceleration * delta)
-		velocity.z = move_toward(velocity.z, target_vel.z, acceleration * delta)
-		
+		var current_speed: float = lock_on_speed if lock_on.has_target() else speed
+		var target_velocity: Vector3 = direction * current_speed
+		velocity.x = move_toward(velocity.x, target_velocity.x, acceleration * delta)
+		velocity.z = move_toward(velocity.z, target_velocity.z, acceleration * delta)
 		state_machine.change_state(PlayerStateMachine.State.MOVE)
-		
-		# Rotate the visual mesh to look in direction of movement
-		var target_angle := atan2(-direction.x, -direction.z)
-		mesh.rotation.y = lerp_angle(mesh.rotation.y, target_angle, 10.0 * delta)
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, acceleration * delta)
 		velocity.z = move_toward(velocity.z, 0.0, acceleration * delta)
 		if is_on_floor() and state_machine.current_state != PlayerStateMachine.State.STAGGERED:
 			state_machine.change_state(PlayerStateMachine.State.IDLE)
-			
+
+	_update_facing(direction, delta)
+	_update_locomotion_visual()
 	move_and_slide()
 
+
+func _update_locomotion_visual() -> void:
+	var horizontal_speed: float = Vector2(velocity.x, velocity.z).length()
+	visual.play_locomotion(horizontal_speed / maxf(speed, 0.01))
+
+
+## Camera-relative movement direction from the current input.
+func _get_move_direction() -> Vector3:
+	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+	if input_dir == Vector2.ZERO or camera_rig == null:
+		return Vector3.ZERO
+
+	var cam_forward: Vector3 = -camera_rig.global_transform.basis.z
+	var cam_right: Vector3 = camera_rig.global_transform.basis.x
+	cam_forward.y = 0.0
+	cam_right.y = 0.0
+
+	return (cam_right * input_dir.x - cam_forward.normalized() * input_dir.y).normalized()
+
+
+## While locked on, Riff faces the target and strafes; otherwise he turns to face
+## where he is running.
+func _update_facing(direction: Vector3, delta: float) -> void:
+	var face_direction: Vector3 = direction
+
+	if lock_on.has_target():
+		var to_target: Vector3 = lock_on.get_target_position() - global_position
+		to_target.y = 0.0
+		if to_target.length_squared() > 0.01:
+			face_direction = to_target.normalized()
+
+	if face_direction == Vector3.ZERO:
+		return
+
+	var target_angle: float = atan2(-face_direction.x, -face_direction.z)
+	mesh.rotation.y = lerp_angle(mesh.rotation.y, target_angle, turn_speed * delta)
+
+
+# ── Dodge ────────────────────────────────────────────────────────
+
 func start_dodge(dir: Vector3) -> void:
-	if is_dead:
+	if is_dead or is_dodging:
 		return
 
 	is_dodging = true
-	is_invulnerable = true
-	dodge_timer = dodge_duration
+	dodge_timer = 0.0
 	dodge_cooldown_timer = dodge_cooldown
-	
-	# Fallback to mesh face direction if idle
-	if dir == Vector3.ZERO:
-		dodge_direction = -mesh.global_transform.basis.z.normalized()
-	else:
+
+	if dir != Vector3.ZERO:
 		dodge_direction = dir
-		
+	elif lock_on.has_target():
+		# Backstep away from the target when locked on with no input, which is
+		# what players reach for when a heavy attack is incoming.
+		var away: Vector3 = global_position - lock_on.get_target_position()
+		away.y = 0.0
+		dodge_direction = away.normalized() if away.length_squared() > 0.01 else -mesh.global_transform.basis.z.normalized()
+	else:
+		dodge_direction = -mesh.global_transform.basis.z.normalized()
+
 	state_machine.change_state(PlayerStateMachine.State.DODGE)
+	visual.play_dodge(dodge_duration)
+	EventBus.player_dodged.emit()
+	AudioManager.play_sfx(&"riff_dodge")
+
+
+func _process_dodge(delta: float) -> void:
+	dodge_timer += delta
+	is_invulnerable = dodge_timer >= invulnerable_start and dodge_timer <= invulnerable_end
+
+	if dodge_timer >= dodge_duration:
+		is_dodging = false
+		is_invulnerable = false
+		state_machine.change_state(PlayerStateMachine.State.IDLE)
+		return
+
+	# Dodge overrides horizontal control entirely, but gravity still applies so a
+	# dodge off a ledge does not float.
+	var vertical: float = velocity.y
+	velocity = dodge_direction * dodge_speed
+	velocity.y = vertical
+
+	# Face the dodge direction unless locked on, where facing the target matters more.
+	if not lock_on.has_target():
+		mesh.rotation.y = lerp_angle(mesh.rotation.y, atan2(-dodge_direction.x, -dodge_direction.z), turn_speed * delta)
+	else:
+		_update_facing(Vector3.ZERO, delta)
+
+	move_and_slide()
+
+
+# ── Lifecycle ────────────────────────────────────────────────────
+
+func _apply_gravity(delta: float) -> void:
+	if not is_on_floor():
+		velocity.y -= gravity * delta
+	else:
+		velocity.y = 0.0
+
 
 func _unhandled_input(event: InputEvent) -> void:
 	if is_dead and event.is_action_pressed("restart"):
 		get_tree().reload_current_scene()
+
+
+func _on_health_changed(value: float, max_value: float) -> void:
+	# Emitted here rather than from PlayerStats so the stats node stays a pure
+	# data holder with no knowledge of the event bus.
+	if value < _last_health:
+		EventBus.player_damaged.emit(_last_health - value, value / maxf(max_value, 1.0))
+		visual.play_hit()
+	_last_health = value
+
 
 func _on_health_depleted() -> void:
 	is_dead = true
 	is_dodging = false
 	is_invulnerable = false
 	velocity = Vector3.ZERO
+	lock_on.clear()
 	state_machine.change_state(PlayerStateMachine.State.STAGGERED)
+	visual.play_death()
 
 	GameManager.change_state(GameManager.GameState.GAME_OVER)
+	EventBus.player_died.emit()
+	AudioManager.play_sfx(&"riff_death")
 
 	if hud_controller and hud_controller.has_method("show_defeat_prompt"):
 		hud_controller.show_defeat_prompt()
-	print("[PlayerController] Defeated. Press R to restart.")
+
+
+# ── Setup ────────────────────────────────────────────────────────
+
+func _bind_camera_rig() -> void:
+	camera_rig = get_node_or_null("PlayerCameraRig")
+	if camera_rig == null:
+		camera_rig = get_node_or_null("../PlayerCameraRig")
+	if camera_rig == null:
+		var rig_scene: PackedScene = load("res://scenes/player/PlayerCameraRig.tscn")
+		camera_rig = rig_scene.instantiate() as PlayerCameraRig
+		add_child(camera_rig)
+
+
+func _bind_hud() -> void:
+	var hud_scene: PackedScene = preload("res://scenes/ui/HUD.tscn")
+	var hud := hud_scene.instantiate() as CanvasLayer
+	add_child(hud)
+
+	hud_controller = hud.get_node("HUDController") as Control
+	if hud_controller == null:
+		return
+
+	if hud_controller.has_method("setup_stats"):
+		hud_controller.setup_stats(stats)
+	if hud_controller.has_method("setup_combat_buffer"):
+		hud_controller.setup_combat_buffer(combat_buffer)

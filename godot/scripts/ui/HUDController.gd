@@ -6,13 +6,88 @@ extends Control
 @onready var combo_label: Label = $ComboLabel
 @onready var center_message_label: Label = $CenterMessageLabel
 
+const RETICLE_SIZE: Vector2 = Vector2(46.0, 46.0)
+
 var combo_tween: Tween = null
 var center_message_tween: Tween = null
+
+var _lock_on_reticle: Panel = null
+var _lock_on_target: Node3D = null
+var _reticle_tween: Tween = null
 
 func _ready() -> void:
 	_set_mouse_filter_ignore(self)
 	combo_label.visible = false
 	center_message_label.visible = false
+	_build_lock_on_reticle()
+	EventBus.lock_on_changed.connect(_on_lock_on_changed)
+
+
+func _process(_delta: float) -> void:
+	_update_lock_on_reticle()
+
+
+# ── Lock-on reticle ──────────────────────────────────────────────
+
+## Built in code rather than added to HUD.tscn: it is a single procedural marker
+## with no authored content, and keeping it here keeps its behaviour and its
+## appearance in one place.
+func _build_lock_on_reticle() -> void:
+	_lock_on_reticle = Panel.new()
+	_lock_on_reticle.name = "LockOnReticle"
+	_lock_on_reticle.custom_minimum_size = RETICLE_SIZE
+	_lock_on_reticle.size = RETICLE_SIZE
+	_lock_on_reticle.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_lock_on_reticle.visible = false
+	_lock_on_reticle.pivot_offset = RETICLE_SIZE * 0.5
+
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.0, 0.0, 0.0, 0.0)
+	style.border_color = Color(0.85, 0.92, 1.0, 0.9)
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(int(RETICLE_SIZE.x * 0.5))
+	_lock_on_reticle.add_theme_stylebox_override("panel", style)
+
+	add_child(_lock_on_reticle)
+
+
+func _on_lock_on_changed(target: Node3D) -> void:
+	_lock_on_target = target
+	_lock_on_reticle.visible = target != null
+
+	if target == null:
+		return
+
+	# Snap in from oversized so acquiring a target reads as a deliberate action.
+	_lock_on_reticle.scale = Vector2.ONE * 2.2
+	if _reticle_tween:
+		_reticle_tween.kill()
+	_reticle_tween = create_tween()
+	_reticle_tween.set_ease(Tween.EASE_OUT)
+	_reticle_tween.tween_property(_lock_on_reticle, "scale", Vector2.ONE, 0.18)
+
+
+func _update_lock_on_reticle() -> void:
+	if _lock_on_target == null or not is_instance_valid(_lock_on_target):
+		if _lock_on_reticle and _lock_on_reticle.visible:
+			_lock_on_reticle.visible = false
+		return
+
+	var camera: Camera3D = get_viewport().get_camera_3d()
+	if camera == null:
+		return
+
+	var anchor := _lock_on_target.get_node_or_null("LockOnPoint") as Node3D
+	var world_position: Vector3 = anchor.global_position if anchor != null else _lock_on_target.global_position + Vector3.UP
+
+	# Behind the camera unprojects to a mirrored on-screen point, which would draw
+	# the reticle over empty space.
+	if camera.is_position_behind(world_position):
+		_lock_on_reticle.visible = false
+		return
+
+	_lock_on_reticle.visible = true
+	_lock_on_reticle.position = camera.unproject_position(world_position) - RETICLE_SIZE * 0.5
 
 func setup_stats(stats: PlayerStats) -> void:
 	stats.health_changed.connect(_on_health_changed)

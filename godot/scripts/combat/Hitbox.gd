@@ -39,10 +39,14 @@ func _on_area_entered(area: Area3D) -> void:
 		area.receive_damage(event)
 		hit_landed.emit(area, event)
 		
-		if resonance_gain > 0.0 and parent_attacker is PlayerController:
+		if parent_attacker is PlayerController:
 			var player_attacker := parent_attacker as PlayerController
-			player_attacker.stats.add_resonance(resonance_gain)
-			print("[Hitbox] Hit landed. Generated %.1f Resonance." % resonance_gain)
+			if resonance_gain > 0.0:
+				player_attacker.stats.add_resonance(resonance_gain)
+
+			# Announced rather than acted on: impact feedback, music and the Encore
+			# meter all key off this without the hitbox knowing any of them exist.
+			EventBus.player_attack_landed.emit(damage, damage_type, area.get_parent() as Node3D)
 
 func _passes_directional_filter(area: Area3D) -> bool:
 	if not use_directional_filter:

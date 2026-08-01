@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3 uid="uid://b1c2d3e4f5a6"]
+[gd_scene load_steps=17 format=3 uid="uid://b1c2d3e4f5a6"]
 
 [ext_resource type="Script" path="res://scripts/player/PlayerController.gd" id="1_controller"]
 [ext_resource type="Script" path="res://scripts/player/PlayerStateMachine.gd" id="2_state_machine"]
@@ -7,6 +7,9 @@
 [ext_resource type="Script" path="res://scripts/player/PlayerStats.gd" id="5_stats"]
 [ext_resource type="Script" path="res://scripts/player/SingController.gd" id="6_sing_controller"]
 [ext_resource type="Script" path="res://scripts/player/CombatBuffer.gd" id="7_combat_buffer"]
+[ext_resource type="Script" path="res://scripts/combat/LockOnController.gd" id="8_lock_on"]
+[ext_resource type="Script" path="res://scripts/combat/CombatFeedback.gd" id="9_combat_feedback"]
+[ext_resource type="Script" path="res://scripts/characters/CharacterVisual.gd" id="10_character_visual"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
 radius = 0.5
@@ -51,6 +54,9 @@ shape = SubResource("CapsuleShape3D_player")
 [node name="MeshInstance3D" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 mesh = SubResource("CapsuleMesh_player")
+
+[node name="CharacterVisual" type="Node3D" parent="MeshInstance3D"]
+script = ExtResource("10_character_visual")
 
 [node name="LuteWeapon" type="Node3D" parent="MeshInstance3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, 0.2, -0.4)
@@ -102,3 +108,9 @@ script = ExtResource("7_combat_buffer")
 
 [node name="SingController" type="Node" parent="."]
 script = ExtResource("6_sing_controller")
+
+[node name="LockOnController" type="Node" parent="."]
+script = ExtResource("8_lock_on")
+
+[node name="CombatFeedback" type="Node" parent="."]
+script = ExtResource("9_combat_feedback")
