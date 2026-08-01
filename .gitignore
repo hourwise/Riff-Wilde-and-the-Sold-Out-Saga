@@ -25,3 +25,32 @@ firebase.cfg
 *.env
 *.pem
 *.key
+
+# ── Asset packs ──────────────────────────────────────────────────
+# Only the packs the project actually references are tracked, verified with
+# tools/verify_referenced_assets.gd. The rest stay local: they are large, and
+# committing them would bloat the repo for files nothing loads.
+godot/Isometric/
+godot/Side/
+godot/Previews/
+godot/Exports/
+godot/Textures/
+godot/bbmodel/
+godot/obj/
+godot/glb/
+godot/gif/
+godot/icon/
+godot/FBX/
+godot/Skins/
+godot/Model/
+godot/Animations/
+godot/Ultimate Modular Ruins Pack - Aug 2021/
+godot/addons/
+
+# GDExtension binaries
+*.dll
+*.wasm
+*.lib
+*.exp
+*.so
+*.dylib
