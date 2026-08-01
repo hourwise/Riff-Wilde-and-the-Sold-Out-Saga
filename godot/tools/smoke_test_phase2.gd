@@ -245,7 +245,54 @@ func _test_locked_movement(player: Node3D) -> void:
 	# Point the camera 90 degrees away from the target.
 	rig.rotation.y += deg_to_rad(90.0)
 
-	var start_distance: float = player.global_position.distance_to(enemy.global_position)
+	# Let the camera finish swinging onto the target before judging where it points.
+	for i in range(40):
+		await physics_frame
+
+	# The rig must point AT the target. atan2 without negated components yaws the
+	# rig 180 degrees out, leaving the camera staring at the enemy's back while
+	# the player mesh still faces it correctly.
+	var to_target: Vector3 = enemy.global_position - player.global_position
+	to_target.y = 0.0
+	var rig_forward: Vector3 = -rig.global_transform.basis.z
+	rig_forward.y = 0.0
+	var facing: float = rig_forward.normalized().dot(to_target.normalized())
+	_check(facing > 0.9, "camera faces the locked target rather than away (dot %.3f)" % facing)
+
+	# Looking around must still work while locked, or the player cannot check
+	# their flanks for the enemies closing in behind them.
+	var yaw_before: float = rig.rotation.y
+	await _hold_action("camera_right", 20)
+	_check(
+		absf(angle_difference(yaw_before, rig.rotation.y)) > deg_to_rad(5.0),
+		"the view can be steered while locked on"
+	)
+
+	# ... and must return to the target once the player stops steering.
+	for i in range(90):
+		await physics_frame
+	rig_forward = -rig.global_transform.basis.z
+	rig_forward.y = 0.0
+	to_target = enemy.global_position - player.global_position
+	to_target.y = 0.0
+	_check(
+		rig_forward.normalized().dot(to_target.normalized()) > 0.9,
+		"the view recentres on the target after steering stops"
+	)
+
+	# Dodging with no movement input must escape, not root the player in place.
+	var dodge_start: float = await _reset_pair(player, enemy)
+	Input.action_press("dodge")
+	await physics_frame
+	Input.action_release("dodge")
+	for i in range(30):
+		await physics_frame
+	_check(
+		player.global_position.distance_to(enemy.global_position) > dodge_start + 0.5,
+		"locked dodge with no input backsteps away from the target"
+	)
+
+	var start_distance: float = await _reset_pair(player, enemy)
 	await _hold_action("move_forward", 24)
 	var approach_distance: float = player.global_position.distance_to(enemy.global_position)
 
@@ -255,8 +302,8 @@ func _test_locked_movement(player: Node3D) -> void:
 			% [start_distance, approach_distance]
 	)
 
+	var strafe_start: float = await _reset_pair(player, enemy)
 	rig.rotation.y += deg_to_rad(90.0)
-	var strafe_start: float = player.global_position.distance_to(enemy.global_position)
 	await _hold_action("move_right", 24)
 	var strafe_distance: float = player.global_position.distance_to(enemy.global_position)
 
@@ -272,6 +319,18 @@ func _test_locked_movement(player: Node3D) -> void:
 	enemy.queue_free()
 	platform.queue_free()
 	await physics_frame
+
+
+## Returns the player and target to a known separation and lets them settle, so
+## each measurement starts from the same state instead of inheriting drift from
+## the previous one. Returns the resulting distance.
+func _reset_pair(player: Node3D, enemy: Node3D) -> float:
+	player.velocity = Vector3.ZERO
+	player.global_position = Vector3(0.0, 201.0, 0.0)
+	enemy.global_position = Vector3(0.0, 201.0, -10.0)
+	for i in range(20):
+		await physics_frame
+	return player.global_position.distance_to(enemy.global_position)
 
 
 func _hold_action(action: String, frames: int) -> void:

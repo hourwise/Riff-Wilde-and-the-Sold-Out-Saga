@@ -17,10 +17,17 @@ extends Node3D
 @export_group("Lock-on")
 ## How quickly the rig swings to face a locked target.
 @export var lock_on_turn_speed: float = 7.0
-## Pitch the camera settles to while locked, in degrees.
+## Pitch the camera eases to when a target is first acquired, in degrees.
 @export var lock_on_pitch_degrees: float = -12.0
-## Player look input is still honoured while locked, at this fraction of normal.
-@export var lock_on_look_influence: float = 0.35
+## How long the pitch is driven toward lock_on_pitch_degrees after acquiring.
+## After this the player has full pitch control again.
+@export var lock_on_pitch_settle_seconds: float = 0.5
+## How far the player may swing the view away from a locked target, in degrees.
+## Wide enough to check the flanks for other enemies without breaking the lock.
+@export var lock_on_max_yaw_offset_degrees: float = 55.0
+## How quickly an unattended view offset drifts back onto the target, in degrees
+## per second. Low enough that holding a glance to the side is comfortable.
+@export var lock_on_offset_recentre_speed: float = 26.0
 
 @export_group("Shake")
 ## Peak positional offset in metres at full trauma.
@@ -44,6 +51,10 @@ var _invert_y: bool = false
 
 var _lock_target: Node3D = null
 var _lock_controller: LockOnController = null
+## Player-controlled yaw offset from "pointing straight at the target".
+var _lock_yaw_offset: float = 0.0
+var _lock_pitch_timer: float = 0.0
+var _look_input_this_frame: bool = false
 
 var _trauma: float = 0.0
 var _shake_time: float = 0.0
@@ -66,6 +77,11 @@ func _process(delta: float) -> void:
 	_track_lock_target(delta)
 	_update_shake(delta)
 
+	# Cleared only after tracking has consumed it. Mouse motion arrives in _input,
+	# which runs before _process, so clearing at the top of the frame would discard
+	# mouse steering before the camera ever saw it.
+	_look_input_this_frame = false
+
 
 func _input(event: InputEvent) -> void:
 	if not (event is InputEventMouseMotion):
@@ -74,10 +90,9 @@ func _input(event: InputEvent) -> void:
 		return
 
 	var motion := event as InputEventMouseMotion
-	var influence: float = lock_on_look_influence if _lock_target != null else 1.0
 	_apply_look(
-		-motion.relative.x * _mouse_sensitivity * influence,
-		-motion.relative.y * _mouse_sensitivity * influence
+		-motion.relative.x * _mouse_sensitivity,
+		-motion.relative.y * _mouse_sensitivity
 	)
 
 
@@ -104,15 +119,30 @@ func _apply_gamepad_look(delta: float) -> void:
 	if look.length() < gamepad_deadzone:
 		return
 
-	var influence: float = lock_on_look_influence if _lock_target != null else 1.0
 	_apply_look(
-		-look.x * _gamepad_sensitivity * delta * influence,
-		-look.y * _gamepad_sensitivity * delta * influence
+		-look.x * _gamepad_sensitivity * delta,
+		-look.y * _gamepad_sensitivity * delta
 	)
 
 
 func _apply_look(yaw_delta: float, pitch_delta: float) -> void:
-	rotate_y(yaw_delta)
+	if not is_zero_approx(yaw_delta) or not is_zero_approx(pitch_delta):
+		_look_input_this_frame = true
+
+	if _lock_target != null:
+		# While locked, yaw is owned by the target tracking below. Writing
+		# rotation.y here would just be overwritten each frame, which is what made
+		# the view feel stuck. Steer a clamped offset instead.
+		_lock_yaw_offset = clampf(
+			_lock_yaw_offset + yaw_delta,
+			-deg_to_rad(lock_on_max_yaw_offset_degrees),
+			deg_to_rad(lock_on_max_yaw_offset_degrees)
+		)
+		# Manual pitch input hands pitch control straight back to the player.
+		if not is_zero_approx(pitch_delta):
+			_lock_pitch_timer = 0.0
+	else:
+		rotate_y(yaw_delta)
 
 	var pitch: float = pitch_delta if not _invert_y else -pitch_delta
 	spring_arm.rotation.x = clampf(
@@ -134,20 +164,35 @@ func _track_lock_target(delta: float) -> void:
 	if to_target.length_squared() < 0.01:
 		return
 
-	# atan2(x, z) rather than looking at the point directly: the rig must stay
-	# upright, and pitch is owned by the spring arm.
-	var desired_yaw: float = atan2(to_target.x, to_target.z)
+	# A Node3D's forward is -Z, so the yaw that points forward along d is
+	# atan2(-d.x, -d.z). Dropping the negations aims the rig directly AWAY from
+	# the target — the camera ends up staring at the enemy's back.
+	var yaw_to_target: float = atan2(-to_target.x, -to_target.z)
+
+	# Let an unattended offset drift back onto the target so the camera recovers
+	# on its own after the player glances aside.
+	if not _look_input_this_frame and not is_zero_approx(_lock_yaw_offset):
+		_lock_yaw_offset = move_toward(
+			_lock_yaw_offset, 0.0, deg_to_rad(lock_on_offset_recentre_speed) * delta
+		)
+
+	var desired_yaw: float = yaw_to_target + _lock_yaw_offset
 	rotation.y = lerp_angle(rotation.y, desired_yaw, clampf(lock_on_turn_speed * delta, 0.0, 1.0))
 
-	spring_arm.rotation.x = lerp_angle(
-		spring_arm.rotation.x,
-		deg_to_rad(lock_on_pitch_degrees),
-		clampf(lock_on_turn_speed * 0.5 * delta, 0.0, 1.0)
-	)
+	# Pitch is only driven briefly after acquiring, then handed back to the player.
+	if _lock_pitch_timer > 0.0:
+		_lock_pitch_timer -= delta
+		spring_arm.rotation.x = lerp_angle(
+			spring_arm.rotation.x,
+			deg_to_rad(lock_on_pitch_degrees),
+			clampf(lock_on_turn_speed * 0.5 * delta, 0.0, 1.0)
+		)
 
 
 func _on_lock_on_changed(target: Node3D) -> void:
 	_lock_target = target
+	_lock_yaw_offset = 0.0
+	_lock_pitch_timer = lock_on_pitch_settle_seconds if target != null else 0.0
 
 
 # ── Shake ────────────────────────────────────────────────────────

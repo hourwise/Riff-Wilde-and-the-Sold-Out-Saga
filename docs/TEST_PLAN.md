@@ -125,6 +125,9 @@ Automated: `godot --headless --path godot --script res://tools/smoke_test_phase2
 | Lock-on drops dead targets | Auto | ✅ | Camera never keeps framing a corpse |
 | Camera stays third person | Auto | ✅ | Camera is not a direct spring-arm child and stays behind the player, at rest and while shaking |
 | Locked movement is target-relative | Auto | ✅ | With the camera turned 90° away, forward still approaches the target and strafe circles at steady range |
+| Camera faces the locked target | Auto | ✅ | Rig forward points at the target, not 180° away at its back |
+| View steerable while locked | Auto | ✅ | Look input swings the view within a clamped offset, then recentres on the target |
+| Locked dodge escapes | Auto | ✅ | Dodging with no input backsteps away from the target |
 | Combo chain flows | Manual | ⬜ | Three strikes chain smoothly; inputs during a swing are not eaten |
 | Dodge cancels attack | Manual | ⬜ | Dodging during recovery interrupts the swing immediately |
 | Hitstop feels weighty | Manual | ⬜ | Finisher freezes noticeably harder than a light hit; no stalling on rapid hits |
@@ -132,6 +135,8 @@ Automated: `godot --headless --path godot --script res://tools/smoke_test_phase2
 | Hit flash reads | Manual | ⬜ | Enemies flash white on every hit, visible at distance |
 | Lock-on framing | Manual | ⬜ | Camera holds the target; Riff strafes and stays facing it |
 | Locking on does not lurch | Manual | ⬜ | Locking on while running forward does not redirect Riff at the enemy; W/S approach and retreat, A/D circle |
+| Locked view remains free | Manual | ⬜ | Mouse/right stick can glance up to 55° aside to check flanks, then eases back onto the target |
+| Circling under pressure | Manual | ⬜ | A/D circles a locked enemy fast enough to avoid being surrounded; other enemies stay visible |
 | Lock-on target switching | Manual | ⬜ | Right-stick or mouse flick switches to the enemy on that side only |
 | Locked backstep | Manual | ⬜ | Dodging with no input while locked steps away from the target |
 | Reticle tracks | Manual | ⬜ | Reticle sits on the target, pops in on acquire, hides when behind camera |
