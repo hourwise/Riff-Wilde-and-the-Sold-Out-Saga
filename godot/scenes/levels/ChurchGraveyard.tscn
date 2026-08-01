@@ -1,0 +1,151 @@
+[gd_scene load_steps=13 format=3 uid="uid://church_graveyard"]
+
+[ext_resource type="Script" path="res://scripts/levels/ChurchGraveyard.gd" id="1_level"]
+[ext_resource type="Script" path="res://scripts/levels/GraveyardBuilder.gd" id="2_graveyard"]
+[ext_resource type="Script" path="res://scripts/levels/ChurchBuilder.gd" id="3_church"]
+[ext_resource type="Script" path="res://scripts/world/FuneralAltar.gd" id="4_altar"]
+[ext_resource type="Script" path="res://scripts/world/EnemyEncounter.gd" id="5_encounter"]
+[ext_resource type="Script" path="res://scripts/world/AltarNetwork.gd" id="6_network"]
+[ext_resource type="Script" path="res://scripts/world/ChurchBell.gd" id="7_bell"]
+[ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="8_player"]
+[ext_resource type="PackedScene" path="res://assets/environment/graveyard-kit/altar-stone.glb" id="9_altarmesh"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/ToneDeaf.tscn" id="10_tonedeaf"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/GraveCrawler.tscn" id="10_gravecrawler"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/HollowChoir.tscn" id="10_hollowchoir"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/BoneBellRinger.tscn" id="10_bonebellringer"]
+
+[sub_resource type="ProceduralSkyMaterial" id="Sky_night"]
+sky_top_color = Color(0.03, 0.04, 0.08, 1)
+sky_horizon_color = Color(0.09, 0.10, 0.15, 1)
+ground_bottom_color = Color(0.02, 0.02, 0.03, 1)
+ground_horizon_color = Color(0.06, 0.07, 0.10, 1)
+sun_angle_max = 12.0
+
+[sub_resource type="Sky" id="Sky_env"]
+sky_material = SubResource("Sky_night")
+
+[sub_resource type="Environment" id="Env_graveyard"]
+background_mode = 2
+sky = SubResource("Sky_env")
+ambient_light_source = 3
+ambient_light_color = Color(0.35, 0.42, 0.6, 1)
+ambient_light_sky_contribution = 0.35
+ambient_light_energy = 0.5
+tonemap_mode = 2
+fog_enabled = true
+fog_light_color = Color(0.18, 0.22, 0.3, 1)
+fog_light_energy = 0.8
+fog_density = 0.035
+fog_sky_affect = 0.4
+adjustment_enabled = true
+adjustment_contrast = 1.08
+adjustment_saturation = 0.92
+
+[sub_resource type="NavigationMesh" id="Nav_graveyard"]
+agent_radius = 0.5
+agent_height = 2.0
+agent_max_climb = 0.5
+cell_size = 0.25
+cell_height = 0.25
+geometry_parsed_geometry_type = 1
+geometry_source_geometry_mode = 1
+geometry_source_group_name = &"navmesh_source"
+
+[node name="ChurchGraveyard" type="Node3D"]
+script = ExtResource("1_level")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Env_graveyard")
+
+; Low, cold and raking, so gravestones throw long shadows and the tower stands
+; out against the sky.
+[node name="Moonlight" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866025, -0.353553, 0.353553, 0, 0.707107, 0.707107, -0.5, -0.612372, 0.612372, 0, 30, 0)
+light_color = Color(0.62, 0.72, 1, 1)
+light_energy = 0.45
+shadow_enabled = true
+
+[node name="NavigationRegion3D" type="NavigationRegion3D" parent="."]
+navigation_mesh = SubResource("Nav_graveyard")
+
+[node name="GraveyardBuilder" type="Node3D" parent="NavigationRegion3D"]
+script = ExtResource("2_graveyard")
+
+[node name="Church" type="Node3D" parent="NavigationRegion3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -72)
+script = ExtResource("3_church")
+
+[node name="ChurchBell" type="Node3D" parent="NavigationRegion3D/Church"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 12, -9)
+script = ExtResource("7_bell")
+
+[node name="AltarNetwork" type="Node" parent="."]
+script = ExtResource("6_network")
+
+[node name="SpawnPoints" type="Node3D" parent="."]
+
+[node name="from_inn" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 22)
+
+[node name="Encounter_Graveyard" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0, -2.0)
+script = ExtResource("5_encounter")
+spawns = Array[PackedScene]([ExtResource("10_tonedeaf"), ExtResource("10_tonedeaf"), ExtResource("10_tonedeaf"), ExtResource("10_gravecrawler")])
+
+[node name="Encounter_Crypts" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.0, 0, -34.0)
+script = ExtResource("5_encounter")
+spawns = Array[PackedScene]([ExtResource("10_gravecrawler"), ExtResource("10_gravecrawler"), ExtResource("10_gravecrawler"), ExtResource("10_hollowchoir")])
+
+[node name="Encounter_Mausoleum" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30.0, 0, -34.0)
+script = ExtResource("5_encounter")
+spawns = Array[PackedScene]([ExtResource("10_tonedeaf"), ExtResource("10_tonedeaf"), ExtResource("10_hollowchoir"), ExtResource("10_bonebellringer")])
+
+[node name="Encounter_Courtyard" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0, -60.0)
+script = ExtResource("5_encounter")
+spawns = Array[PackedScene]([ExtResource("10_bonebellringer"), ExtResource("10_hollowchoir"), ExtResource("10_gravecrawler"), ExtResource("10_gravecrawler"), ExtResource("10_tonedeaf")])
+
+[node name="Altar_graveyard" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0, 0.0)
+script = ExtResource("4_altar")
+altar_id = &"graveyard"
+display_name = "Graveyard Altar"
+encounter_path = NodePath("../Encounter_Graveyard")
+
+[node name="Mesh" parent="Altar_graveyard" instance=ExtResource("9_altarmesh")]
+transform = Transform3D(2.4, 0, 0, 0, 2.4, 0, 0, 0, 2.4, 0, 0, 0)
+
+[node name="Altar_crypts" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.0, 0, -32.0)
+script = ExtResource("4_altar")
+altar_id = &"crypts"
+display_name = "Crypt Altar"
+encounter_path = NodePath("../Encounter_Crypts")
+
+[node name="Mesh" parent="Altar_crypts" instance=ExtResource("9_altarmesh")]
+transform = Transform3D(2.4, 0, 0, 0, 2.4, 0, 0, 0, 2.4, 0, 0, 0)
+
+[node name="Altar_mausoleum" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30.0, 0, -32.0)
+script = ExtResource("4_altar")
+altar_id = &"mausoleum"
+display_name = "Mausoleum Altar"
+encounter_path = NodePath("../Encounter_Mausoleum")
+
+[node name="Mesh" parent="Altar_mausoleum" instance=ExtResource("9_altarmesh")]
+transform = Transform3D(2.4, 0, 0, 0, 2.4, 0, 0, 0, 2.4, 0, 0, 0)
+
+[node name="Altar_courtyard" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0, -58.0)
+script = ExtResource("4_altar")
+altar_id = &"courtyard"
+display_name = "Church Altar"
+encounter_path = NodePath("../Encounter_Courtyard")
+
+[node name="Mesh" parent="Altar_courtyard" instance=ExtResource("9_altarmesh")]
+transform = Transform3D(2.4, 0, 0, 0, 2.4, 0, 0, 0, 2.4, 0, 0, 0)
+
+[node name="Player" parent="." instance=ExtResource("8_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 22)

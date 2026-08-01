@@ -194,6 +194,31 @@ be right *before* audio arrives.
 | Sir Brass reads as spectacle | Manual | ⬜ | Materialise, blast, fade lands as the payoff for a full meter |
 | Encore prompt is actionable | Manual | ⬜ | "ENCORE READY" appears and stays summonable long enough to react to |
 
+## VS Phase 5: Church Graveyard
+
+Automated: `godot --headless --path godot --script res://tools/smoke_test_phase5.gd`
+(37 checks). The level is generated, so the checks are about whether it came out
+playable rather than whether it loaded.
+
+| Test | Type | Status | Description |
+|---|---|---|---|
+| Graveyard is dressed | Auto | Y | 745 scenery pieces across five regions, from a fixed seed |
+| Church is assembled | Auto | Y | 126 pieces; bell verified to hang in the belfry, not at ground level |
+| Navigation bakes | Auto | Y | Polygon count asserted — an empty bake reports success and silently strands every enemy |
+| Navigation map adopts the region | Auto | Y | Registration is not readiness; the server answers with the world origin in between |
+| All five regions reachable | Auto | Y | Probes at gate, graveyard, crypts, mausoleum and courtyard resolve onto the navmesh |
+| Clearings stay clear | Auto | Y | No scenery inside altar plazas, spawn or paths |
+| Altars start guarded | Auto | Y | All four locked, and cleansing is refused while guarded |
+| Altars unlock when cleared | Auto | Y | Each opens only after its own encounter |
+| Gate fires exactly once | Auto | Y | all_altars_cleansed and the bell each fire a single time |
+| Regions read as distinct | Manual | [ ] | Crypts, mausoleum and courtyard should feel like different places, not one field |
+| Church is visible throughout | Manual | [ ] | The tower should be a usable landmark from every region, per ADR-0002 |
+| Fog and torchlight | Manual | [ ] | Dark and gothic but readable; lampposts guide without lighting everything |
+| Routes are legible | Manual | [ ] | Paths make the next destination obvious without a map |
+| Altar states read at distance | Manual | [ ] | Green guarded, blue ready, gold cleansed, distinguishable across a region |
+| Bell moment lands | Manual | [ ] | Toll, flare and dread pause feel like a turning point |
+| No fall-through | Manual | [ ] | Ground is seamless; nothing catches or drops the player |
+
 ## Phase 8: Polish & Export
 
 | Test | Type | Status | Description |

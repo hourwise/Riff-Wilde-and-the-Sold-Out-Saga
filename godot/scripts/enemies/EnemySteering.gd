@@ -111,7 +111,16 @@ func snap_to_navigation(point: Vector3) -> Vector3:
 	if NavigationServer3D.map_get_regions(map).is_empty():
 		return point
 
-	return NavigationServer3D.map_get_closest_point(map, point)
+	var closest: Vector3 = NavigationServer3D.map_get_closest_point(map, point)
+
+	# A registered region is not the same as a queryable one: the server adopts
+	# regions before their polygons are synced, and answers with the origin in
+	# between. Treat an exact origin result for a non-origin query as "not ready"
+	# rather than walking the enemy to the middle of the level.
+	if closest.is_zero_approx() and not point.is_zero_approx():
+		return point
+
+	return closest
 
 
 func _apply_influences(desired: Vector3) -> Vector3:
