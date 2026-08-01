@@ -123,12 +123,15 @@ Automated: `godot --headless --path godot --script res://tools/smoke_test_phase2
 | Hitstop restores time scale | Auto | ✅ | `Engine.time_scale` returns to 1.0 after the freeze |
 | Lock-on acquires and releases | Auto | ✅ | Toggles on/off and announces both on EventBus |
 | Lock-on drops dead targets | Auto | ✅ | Camera never keeps framing a corpse |
+| Camera stays third person | Auto | ✅ | Camera is not a direct spring-arm child and stays behind the player, at rest and while shaking |
+| Locked movement is target-relative | Auto | ✅ | With the camera turned 90° away, forward still approaches the target and strafe circles at steady range |
 | Combo chain flows | Manual | ⬜ | Three strikes chain smoothly; inputs during a swing are not eaten |
 | Dodge cancels attack | Manual | ⬜ | Dodging during recovery interrupts the swing immediately |
 | Hitstop feels weighty | Manual | ⬜ | Finisher freezes noticeably harder than a light hit; no stalling on rapid hits |
 | Camera shake scales | Manual | ⬜ | Light hits subtle, finisher strong, taking damage strongest |
 | Hit flash reads | Manual | ⬜ | Enemies flash white on every hit, visible at distance |
 | Lock-on framing | Manual | ⬜ | Camera holds the target; Riff strafes and stays facing it |
+| Locking on does not lurch | Manual | ⬜ | Locking on while running forward does not redirect Riff at the enemy; W/S approach and retreat, A/D circle |
 | Lock-on target switching | Manual | ⬜ | Right-stick or mouse flick switches to the enemy on that side only |
 | Locked backstep | Manual | ⬜ | Dodging with no input while locked steps away from the target |
 | Reticle tracks | Manual | ⬜ | Reticle sits on the target, pops in on acquire, hides when behind camera |

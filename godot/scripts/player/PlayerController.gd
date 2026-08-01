@@ -99,18 +99,39 @@ func _update_locomotion_visual() -> void:
 	visual.play_locomotion(horizontal_speed / maxf(speed, 0.01))
 
 
-## Camera-relative movement direction from the current input.
+## Movement direction from the current input.
+##
+## Free movement is camera-relative. Locked-on movement is TARGET-relative:
+## forward approaches the target, back retreats, left/right circle it.
+##
+## This distinction matters. Locking on swings the camera to face the target, and
+## with camera-relative movement that silently redefines "forward" mid-stride —
+## holding forward as you lock on would launch you straight at the enemy. Anchoring
+## to the target instead keeps the stick meaning the same thing throughout.
 func _get_move_direction() -> Vector3:
 	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	if input_dir == Vector2.ZERO or camera_rig == null:
 		return Vector3.ZERO
 
-	var cam_forward: Vector3 = -camera_rig.global_transform.basis.z
-	var cam_right: Vector3 = camera_rig.global_transform.basis.x
-	cam_forward.y = 0.0
-	cam_right.y = 0.0
+	var forward: Vector3 = _get_reference_forward()
+	var right: Vector3 = forward.cross(Vector3.UP).normalized()
 
-	return (cam_right * input_dir.x - cam_forward.normalized() * input_dir.y).normalized()
+	return (right * input_dir.x - forward * input_dir.y).normalized()
+
+
+## The vector that "forward" input means right now.
+func _get_reference_forward() -> Vector3:
+	if lock_on.has_target():
+		var to_target: Vector3 = lock_on.get_target_position() - global_position
+		to_target.y = 0.0
+		# Standing on top of the target makes the direction unstable, so fall back
+		# to the camera rather than spinning.
+		if to_target.length_squared() > 0.04:
+			return to_target.normalized()
+
+	var cam_forward: Vector3 = -camera_rig.global_transform.basis.z
+	cam_forward.y = 0.0
+	return cam_forward.normalized()
 
 
 ## While locked on, Riff faces the target and strafes; otherwise he turns to face

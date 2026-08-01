@@ -36,6 +36,7 @@ func _initialize() -> void:
 	await _test_camera_framing(player)
 	await _test_hitstop()
 	await _test_lock_on(player)
+	await _test_locked_movement(player)
 
 	print("\n=== %d/%d checks passed ===" % [_checks - _failures, _checks])
 	if _failures > 0:
@@ -191,6 +192,94 @@ func _test_lock_on(player: Node3D) -> void:
 		_check(false, "lock-on re-acquires for the death test")
 
 	enemy.queue_free()
+
+
+## While locked on, movement must be anchored to the TARGET, not the camera.
+## With camera-relative movement, locking on redefines "forward" as the camera
+## swings, which launches the player at the enemy. The camera is deliberately
+## rotated away here so a camera-relative implementation cannot pass.
+func _test_locked_movement(player: Node3D) -> void:
+	var lock_on: Node = player.get_node_or_null("LockOnController")
+	var rig: Node3D = player.get_node_or_null("PlayerCameraRig")
+	if not _check(lock_on != null and rig != null, "lock-on and rig available for movement test"):
+		return
+
+	# Run this on a clean platform well above the arena. Measuring displacement in
+	# the arena itself is unreliable: its props and its own chasing enemies box the
+	# player in, so a correct implementation still registers as not moving.
+	var platform := StaticBody3D.new()
+	var platform_shape := CollisionShape3D.new()
+	var platform_box := BoxShape3D.new()
+	platform_box.size = Vector3(120.0, 1.0, 120.0)
+	platform_shape.shape = platform_box
+	platform.add_child(platform_shape)
+	platform.collision_layer = 1
+	current_scene.add_child(platform)
+	platform.global_position = Vector3(0.0, 200.0, 0.0)
+
+	# The arena's own enemies would compete for the lock; take them out of it.
+	for node in get_nodes_in_group("enemies"):
+		node.remove_from_group("enemies")
+		node.set_physics_process(false)
+
+	var enemy_scene := load(ENEMY) as PackedScene
+	var enemy := enemy_scene.instantiate() as Node3D
+	current_scene.add_child(enemy)
+	enemy.set_physics_process(false)
+
+	player.velocity = Vector3.ZERO
+	player.global_position = Vector3(0.0, 201.0, 0.0)
+	enemy.global_position = Vector3(0.0, 201.0, -10.0)
+
+	# Let the player settle onto the platform before measuring.
+	for i in range(20):
+		await physics_frame
+
+	lock_on.call("clear")
+	lock_on.call("toggle")
+	await physics_frame
+	if not _check(lock_on.get("current_target") == enemy, "locked onto the intended target"):
+		enemy.queue_free()
+		return
+
+	# Point the camera 90 degrees away from the target.
+	rig.rotation.y += deg_to_rad(90.0)
+
+	var start_distance: float = player.global_position.distance_to(enemy.global_position)
+	await _hold_action("move_forward", 24)
+	var approach_distance: float = player.global_position.distance_to(enemy.global_position)
+
+	_check(
+		approach_distance < start_distance - 0.5,
+		"locked forward approaches the target despite the camera facing elsewhere (%.2fm -> %.2fm)"
+			% [start_distance, approach_distance]
+	)
+
+	rig.rotation.y += deg_to_rad(90.0)
+	var strafe_start: float = player.global_position.distance_to(enemy.global_position)
+	await _hold_action("move_right", 24)
+	var strafe_distance: float = player.global_position.distance_to(enemy.global_position)
+
+	# Circling keeps roughly constant range; a camera-relative basis would drift
+	# in or out as the camera swings.
+	_check(
+		absf(strafe_distance - strafe_start) < 1.5,
+		"locked strafe circles the target at a steady range (%.2fm -> %.2fm)"
+			% [strafe_start, strafe_distance]
+	)
+
+	lock_on.call("clear")
+	enemy.queue_free()
+	platform.queue_free()
+	await physics_frame
+
+
+func _hold_action(action: String, frames: int) -> void:
+	Input.action_press(action)
+	for i in range(frames):
+		await physics_frame
+	Input.action_release(action)
+	await physics_frame
 
 
 # ── Helpers ──────────────────────────────────────────────────────
