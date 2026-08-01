@@ -74,7 +74,7 @@ procedural_mesh_path = NodePath(".")
 ; all the facing code here are -Z. Do not "tidy" this away without checking which
 ; way the replacement model faces.
 [node name="Body" parent="MeshInstance3D/CharacterVisual" instance=ExtResource("14_body")]
-transform = Transform3D(-3.8, 0, -3.32133e-07, 0, 3.8, 0, 3.32133e-07, 0, -3.8, 0, -1, 0)
+transform = Transform3D(-3, 0, 0, 0, 3, 0, 0, 0, -3, 0, -1, 0)
 
 [node name="LuteWeapon" type="Node3D" parent="MeshInstance3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, 0.2, -0.4)

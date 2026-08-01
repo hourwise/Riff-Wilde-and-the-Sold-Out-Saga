@@ -5,10 +5,12 @@
 [node name="PlayerCameraRig" type="Node3D"]
 script = ExtResource("1_rig_script")
 
+; Pivot sits above the character's head, not level with it. At head height the
+; camera looks through him and the model occludes whatever he is fighting.
 [node name="SpringArm3D" type="SpringArm3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.05, 0)
 collision_mask = 1
-spring_length = 4.0
+spring_length = 4.6
 
 ; SpringArm3D repositions every direct Node3D child each frame. ShakePivot absorbs
 ; that, leaving the camera's own local transform free for shake to use. Do not
