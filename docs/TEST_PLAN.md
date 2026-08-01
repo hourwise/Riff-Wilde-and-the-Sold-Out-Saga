@@ -142,6 +142,27 @@ Automated: `godot --headless --path godot --script res://tools/smoke_test_phase2
 | Locked backstep | Manual | ⬜ | Dodging with no input while locked steps away from the target |
 | Reticle tracks | Manual | ⬜ | Reticle sits on the target, pops in on acquire, hides when behind camera |
 
+## VS Phase 3: Enemy Roster
+
+Automated: `godot --headless --path godot --script res://tools/smoke_test_phase3.gd`
+(53 checks — stats sanity, scene structure, and each enemy's defining mechanic).
+
+| Test | Type | Status | Description |
+|---|---|---|---|
+| Stats resources sane | Auto | ✅ | Every enemy has health, a non-zero telegraph, and leashes further than it detects |
+| Scene structure complete | Auto | ✅ | All four have Hurtbox, steering, nav agent, lock-on anchor and stats assigned |
+| Choir channel interrupts | Auto | ✅ | Any damage cancels the song — the counterplay exists |
+| Choir song empowers allies | Auto | ✅ | A completed channel raises nearby enemies' damage multiplier |
+| Bell Ringer shrugs off chip | Auto | ✅ | Damage below the poise threshold does not stagger |
+| Bell Ringer poise breaks | Auto | ✅ | Committing past the threshold staggers it |
+| Crawler leaps at mid-range | Auto | ✅ | Leaps to close 3–6.5m, verified with the player pinned |
+| Crawler does not leap point blank | Auto | ✅ | Swipes instead of jumping over the player |
+| Mixed encounter reads | Manual | ⬜ | Crawlers, Choir and Ringer together demand different answers, not the same one |
+| Silhouettes distinguishable | Manual | ⬜ | Low/wide crawler, tall/thin choir, bulky ringer readable at distance and in fog |
+| Telegraphs readable | Manual | ⬜ | Each wind-up flash is visible in time to react; Ringer's is longest |
+| Choir is worth prioritising | Manual | ⬜ | Ignoring the Choir noticeably raises incoming damage; silencing it is felt |
+| Shockwave punishes standing still | Manual | ⬜ | Ringer's arc can be sidestepped or escaped behind |
+
 ## Phase 8: Polish & Export
 
 | Test | Type | Status | Description |

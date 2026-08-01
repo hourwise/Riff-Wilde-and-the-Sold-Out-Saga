@@ -103,6 +103,13 @@ func apply_knockdown(duration: float) -> void:
 ## Flashes the enemy white on hit. Reads instantly at any distance and in fog,
 ## which the squash-and-stretch reaction alone does not.
 func play_hit_flash() -> void:
+	flash(HIT_FLASH_COLOUR, hit_flash_energy, hit_flash_duration)
+
+
+## Pulses the enemy's emission. Used for hit confirmation and, with a different
+## colour and a longer fade, for attack telegraphs — both need to read at distance
+## and through fog, which silhouette animation alone does not achieve.
+func flash(colour: Color, energy: float, duration: float) -> void:
 	if _hit_flash_material == null:
 		return
 
@@ -110,12 +117,12 @@ func play_hit_flash() -> void:
 		_hit_flash_tween.kill()
 
 	_hit_flash_material.emission_enabled = true
-	_hit_flash_material.emission = HIT_FLASH_COLOUR
-	_hit_flash_material.emission_energy_multiplier = hit_flash_energy
+	_hit_flash_material.emission = colour
+	_hit_flash_material.emission_energy_multiplier = energy
 
 	_hit_flash_tween = create_tween()
 	_hit_flash_tween.tween_property(
-		_hit_flash_material, "emission_energy_multiplier", 0.0, hit_flash_duration
+		_hit_flash_material, "emission_energy_multiplier", 0.0, duration
 	)
 	_hit_flash_tween.tween_callback(func() -> void:
 		_hit_flash_material.emission_enabled = false

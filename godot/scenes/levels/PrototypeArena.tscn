@@ -4,7 +4,9 @@
 [ext_resource type="PackedScene" path="res://scenes/enemies/TrainingDummy.tscn" id="2_dummy"]
 [ext_resource type="PackedScene" path="res://scenes/enemies/ToneDeaf.tscn" id="3_tone_deaf"]
 [ext_resource type="Script" path="res://scripts/levels/PrototypeArena.gd" id="4_arena_script"]
-[ext_resource type="PackedScene" path="res://scenes/enemies/IroncladWarden.tscn" id="5_warden"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/GraveCrawler.tscn" id="5_crawler"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/HollowChoir.tscn" id="9_choir"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/BoneBellRinger.tscn" id="10_ringer"]
 [ext_resource type="Script" path="res://scripts/interactables/ScoutingMarker.gd" id="6_scouting_marker"]
 [ext_resource type="Script" path="res://scripts/interactables/ExtractionPoint.gd" id="7_extraction_point"]
 [ext_resource type="Script" path="res://scripts/levels/EnvironmentBuilder.gd" id="8_env_builder"]
@@ -113,8 +115,17 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0.5, -10)
 [node name="ToneDeaf3" parent="." instance=ExtResource("3_tone_deaf")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0.5, 6)
 
-[node name="IroncladWarden" parent="." instance=ExtResource("5_warden")]
+[node name="GraveCrawler" parent="." instance=ExtResource("5_crawler")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0.5, -2)
+
+[node name="GraveCrawler2" parent="." instance=ExtResource("5_crawler")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 0.5, -5)
+
+[node name="HollowChoir" parent="." instance=ExtResource("9_choir")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0.5, -9)
+
+[node name="BoneBellRinger" parent="." instance=ExtResource("10_ringer")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 0.5, -12)
 
 [node name="ScoutingMarker" type="Area3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 1.2, 17)

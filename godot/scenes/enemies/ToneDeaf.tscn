@@ -1,8 +1,11 @@
-[gd_scene load_steps=8 format=3 uid="uid://tone_deaf_enemy"]
+[gd_scene load_steps=11 format=3 uid="uid://tone_deaf_enemy"]
 
 [ext_resource type="Script" path="res://scripts/enemies/ToneDeafAI.gd" id="1_ai"]
 [ext_resource type="Script" path="res://scripts/combat/Hurtbox.gd" id="2_hurtbox"]
 [ext_resource type="Script" path="res://scripts/enemies/EnemyStatusBars.gd" id="3_status_bars"]
+[ext_resource type="Script" path="res://scripts/enemies/EnemySteering.gd" id="4_steering"]
+[ext_resource type="Script" path="res://scripts/characters/CharacterVisual.gd" id="5_visual"]
+[ext_resource type="Resource" path="res://resources/enemies/tone_deaf.tres" id="6_stats"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_tone_deaf"]
 radius = 0.4
@@ -23,8 +26,7 @@ size = Vector3(1.0, 1.8, 1.0)
 collision_layer = 4
 collision_mask = 3
 script = ExtResource("1_ai")
-max_health = 60.0
-knockback_resistance = 0.85
+stats = ExtResource("6_stats")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
@@ -35,6 +37,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
 mesh = SubResource("CapsuleMesh_tone_deaf")
 surface_material_override/0 = SubResource("StandardMaterial3D_tone_deaf")
 
+[node name="CharacterVisual" type="Node3D" parent="."]
+script = ExtResource("5_visual")
+procedural_mesh_path = NodePath("../MeshInstance3D")
+
 [node name="Hurtbox" type="Area3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
 script = ExtResource("2_hurtbox")
@@ -42,10 +48,14 @@ script = ExtResource("2_hurtbox")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
 shape = SubResource("BoxShape3D_hurtbox")
 
+[node name="LockOnPoint" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
+
 [node name="Label3D" type="Label3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.8, 0)
+visible = false
 billboard = 1
-text = "Tone Deaf HP: 60/60"
+text = "Tone Deaf"
 font_size = 28
 outline_size = 8
 
@@ -60,3 +70,6 @@ path_desired_distance = 0.5
 target_desired_distance = 1.4
 radius = 0.45
 height = 1.6
+
+[node name="EnemySteering" type="Node" parent="."]
+script = ExtResource("4_steering")

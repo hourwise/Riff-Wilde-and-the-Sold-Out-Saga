@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemies/EnemyStats.gd" id="1_stats"]
+
+[resource]
+script = ExtResource("1_stats")
+display_name = "Tone Deaf"
+max_health = 60.0
+knockback_resistance = 0.85
+poise = 0.0
+move_speed = 3.2
+acceleration = 10.0
+friction = 18.0
+turn_speed = 7.0
+detection_range = 20.0
+leash_range = 32.0
+chase_memory_seconds = 4.0
+attack_range = 1.8
+attack_damage = 8.0
+attack_cooldown = 1.4
+attack_windup = 0.5
+hit_stun_duration = 0.3
+encore_on_hit = 4.0
+encore_on_death = 10.0

@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemies/EnemyStats.gd" id="1_stats"]
+
+[resource]
+script = ExtResource("1_stats")
+display_name = "Grave Crawler"
+max_health = 28.0
+knockback_resistance = 0.6
+poise = 0.0
+move_speed = 5.6
+acceleration = 16.0
+friction = 20.0
+turn_speed = 11.0
+detection_range = 24.0
+leash_range = 34.0
+chase_memory_seconds = 5.0
+attack_range = 1.5
+attack_damage = 6.0
+attack_cooldown = 0.9
+attack_windup = 0.22
+hit_stun_duration = 0.22
+encore_on_hit = 5.0
+encore_on_death = 8.0

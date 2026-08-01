@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemies/EnemyStats.gd" id="1_stats"]
+
+[resource]
+script = ExtResource("1_stats")
+display_name = "Bone Bell Ringer"
+max_health = 160.0
+knockback_resistance = 2.6
+poise = 55.0
+poise_window = 2.0
+poise_recovery_seconds = 3.5
+move_speed = 2.2
+acceleration = 7.0
+friction = 14.0
+turn_speed = 3.4
+detection_range = 22.0
+leash_range = 30.0
+chase_memory_seconds = 6.0
+attack_range = 3.6
+attack_damage = 18.0
+attack_cooldown = 2.6
+attack_windup = 0.9
+hit_stun_duration = 0.4
+encore_on_hit = 7.0
+encore_on_death = 24.0
