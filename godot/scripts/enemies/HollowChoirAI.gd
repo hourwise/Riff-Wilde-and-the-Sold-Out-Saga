@@ -95,8 +95,16 @@ func _update_ai(delta: float) -> void:
 		_face(to_target.normalized(), delta)
 
 
+## Backs away from the player. Routed through steering rather than moving straight
+## along the away vector, so the Choir cannot retreat off a ledge or into a wall —
+## it kites within the navigable area instead.
 func _retreat(to_target: Vector3, delta: float) -> void:
-	var away: Vector3 = -to_target.normalized()
+	var away: Vector3 = Vector3.ZERO
+	if steering != null and target != null:
+		away = steering.get_retreat_direction(target.global_position, preferred_distance)
+	if away == Vector3.ZERO:
+		away = -to_target.normalized()
+
 	var goal_velocity: Vector3 = away * _stat_move_speed()
 	velocity.x = move_toward(velocity.x, goal_velocity.x, _stat_acceleration() * delta)
 	velocity.z = move_toward(velocity.z, goal_velocity.z, _stat_acceleration() * delta)

@@ -75,6 +75,45 @@ func get_direction_to(goal_position: Vector3) -> Vector3:
 	return _apply_influences(desired)
 
 
+## Direction to back away from a threat while staying on navigable ground.
+##
+## Retreating naively — just moving along the away vector — walks the enemy
+## backwards off ledges and into walls, because nothing is checking where it is
+## going. Projecting the retreat goal onto the navigation map first keeps it on
+## the level.
+func get_retreat_direction(threat_position: Vector3, distance: float) -> Vector3:
+	if _body == null:
+		return Vector3.ZERO
+
+	var away: Vector3 = _body.global_position - threat_position
+	away.y = 0.0
+	if away.length_squared() < 0.0001:
+		away = -_body.global_transform.basis.z
+		away.y = 0.0
+
+	var goal: Vector3 = snap_to_navigation(_body.global_position + away.normalized() * distance)
+	return get_direction_to(goal)
+
+
+## Nearest point on the navigation map. Returns the input unchanged when no map is
+## available, so this is safe in test scenes that have no NavigationRegion.
+func snap_to_navigation(point: Vector3) -> Vector3:
+	if _agent == null:
+		return point
+
+	var map: RID = _agent.get_navigation_map()
+	if not map.is_valid():
+		return point
+
+	# An empty map answers every closest-point query with the world origin, which
+	# would drag retreating enemies to 0,0,0 — straight through the player. Scenes
+	# without a baked navigation region must be left alone.
+	if NavigationServer3D.map_get_regions(map).is_empty():
+		return point
+
+	return NavigationServer3D.map_get_closest_point(map, point)
+
+
 func _apply_influences(desired: Vector3) -> Vector3:
 	var steered: Vector3 = desired
 	steered += _get_obstacle_avoidance(desired) * obstacle_avoid_strength

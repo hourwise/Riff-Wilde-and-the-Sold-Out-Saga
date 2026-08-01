@@ -13,6 +13,11 @@ enum State { IDLE, CHASE, ATTACK, STAGGER, DEAD }
 ## Tuning. Assigning one overrides the inline exports inherited from EnemyBase.
 @export var stats: EnemyStats
 
+## Height below which the enemy is considered to have fallen out of the world and
+## is returned to the last ground it stood on. A gap in level geometry must not be
+## able to silently delete an enemy the player still needs to defeat.
+@export var fall_recovery_y: float = -20.0
+
 var current_state: State = State.IDLE
 var target: PlayerController = null
 
@@ -32,6 +37,9 @@ var poise_timer: float = 0.0
 var _damage_multiplier: float = 1.0
 var _buff_timer: float = 0.0
 
+## Last position where the enemy was standing on something solid.
+var _last_grounded_position: Vector3 = Vector3.ZERO
+
 @onready var steering: EnemySteering = get_node_or_null("EnemySteering") as EnemySteering
 @onready var visual: CharacterVisual = get_node_or_null("CharacterVisual") as CharacterVisual
 
@@ -40,6 +48,7 @@ func _ready() -> void:
 	_apply_stats()
 	super._ready()
 	add_to_group("enemies")
+	_last_grounded_position = global_position
 	_find_target()
 
 
@@ -61,6 +70,7 @@ func _physics_process(delta: float) -> void:
 		return
 
 	_tick_timers(delta)
+	_recover_if_fallen()
 
 	if target == null or not is_instance_valid(target):
 		_find_target()
@@ -118,6 +128,25 @@ func _tick_timers(delta: float) -> void:
 			is_winding_up_attack = false
 			attack_cooldown_timer = _stat_attack_cooldown()
 			_resolve_attack()
+
+
+## Returns the enemy to the last solid ground it stood on if it has fallen out of
+## the world. Cheaper and far less confusing than letting it disappear, and it
+## keeps encounter completion from becoming unreachable.
+func _recover_if_fallen() -> void:
+	# is_on_floor() reports the previous move_and_slide, so it still reads true for
+	# a frame after falling or being moved. Requiring a sane height as well stops
+	# a fallen position being recorded as solid ground and recovered back into.
+	if is_on_floor() and global_position.y > fall_recovery_y:
+		_last_grounded_position = global_position
+		return
+
+	if global_position.y > fall_recovery_y:
+		return
+
+	global_position = _last_grounded_position + Vector3.UP * 0.5
+	velocity = Vector3.ZERO
+	push_warning("[%s] Fell out of the world and was recovered." % name)
 
 
 func _update_ai(delta: float) -> void:

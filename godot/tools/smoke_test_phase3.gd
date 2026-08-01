@@ -37,6 +37,8 @@ func _initialize() -> void:
 	await _test_choir_buff()
 	await _test_bell_ringer_poise()
 	await _test_crawler_leap()
+	await _test_retreat_direction()
+	await _test_fall_recovery()
 
 	print("\n=== %d/%d checks passed ===" % [_checks - _failures, _checks])
 	if _failures > 0:
@@ -254,6 +256,63 @@ func _test_crawler_leap() -> void:
 
 	_player.set_physics_process(true)
 	crawler.queue_free()
+	await physics_frame
+
+
+## The Hollow Choir kites, and a naive retreat walks it backwards off the level.
+## Its retreat must be routed through steering, which projects the goal onto the
+## navigation map before moving.
+func _test_retreat_direction() -> void:
+	await _reset_player()
+	var choir: Node3D = await _spawn_near_player("res://scenes/enemies/HollowChoir.tscn", Vector3(0.0, 0.0, -3.0))
+	if not _check(choir != null, "Hollow Choir spawns for retreat test"):
+		return
+
+	var steering := choir.get_node_or_null("EnemySteering") as EnemySteering
+	if not _check(steering != null, "Hollow Choir has steering"):
+		choir.queue_free()
+		return
+
+	var away: Vector3 = steering.get_retreat_direction(_player.global_position, 8.0)
+	var expected: Vector3 = choir.global_position - _player.global_position
+	expected.y = 0.0
+
+	_check(away != Vector3.ZERO, "retreat produces a direction")
+	_check(
+		away.normalized().dot(expected.normalized()) > 0.5,
+		"retreat heads away from the player"
+	)
+
+	choir.queue_free()
+	await physics_frame
+
+
+## A gap in level geometry must not be able to delete an enemy the player still
+## needs to defeat, so anything that falls out of the world is returned to the
+## last ground it stood on.
+func _test_fall_recovery() -> void:
+	await _reset_player()
+	var enemy: Node3D = await _spawn_near_player("res://scenes/enemies/ToneDeaf.tscn", Vector3(3.0, 0.0, -3.0))
+	if not _check(enemy != null, "enemy spawns for fall test"):
+		return
+
+	# Let it settle so it records solid ground beneath it.
+	for i in range(15):
+		await physics_frame
+
+	var recovery_height: float = float(enemy.get("fall_recovery_y"))
+	enemy.global_position = Vector3(0.0, recovery_height - 30.0, 0.0)
+	enemy.velocity = Vector3.ZERO
+
+	for i in range(10):
+		await physics_frame
+
+	_check(
+		enemy.global_position.y > recovery_height,
+		"an enemy that falls out of the world is recovered (y=%.1f)" % enemy.global_position.y
+	)
+
+	enemy.queue_free()
 	await physics_frame
 
 

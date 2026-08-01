@@ -17,6 +17,10 @@ extends CharacterBody3D
 @export var invulnerable_start: float = 0.04
 @export var invulnerable_end: float = 0.20
 
+## Height below which Riff is returned to the last ground he stood on. Falling
+## through a seam in level geometry would otherwise end the run with no way back.
+@export var fall_recovery_y: float = -20.0
+
 var is_dodging: bool = false
 var is_invulnerable: bool = false
 var is_dead: bool = false
@@ -26,6 +30,8 @@ var dodge_direction: Vector3 = Vector3.ZERO
 
 ## Previous health, used to derive damage amounts for EventBus.player_damaged.
 var _last_health: float = 0.0
+## Last position where Riff was standing on something solid.
+var _last_grounded_position: Vector3 = Vector3.ZERO
 
 @onready var state_machine: PlayerStateMachine = $PlayerStateMachine
 @onready var mesh: MeshInstance3D = $MeshInstance3D
@@ -48,6 +54,7 @@ func _ready() -> void:
 	camera_rig.set_lock_controller(lock_on)
 
 	_last_health = stats.health
+	_last_grounded_position = global_position
 	stats.health_depleted.connect(_on_health_depleted)
 	stats.health_changed.connect(_on_health_changed)
 
@@ -63,6 +70,7 @@ func _physics_process(delta: float) -> void:
 		return
 
 	_apply_gravity(delta)
+	_recover_if_fallen()
 
 	if dodge_cooldown_timer > 0.0:
 		dodge_cooldown_timer -= delta
@@ -226,6 +234,27 @@ func _apply_gravity(delta: float) -> void:
 		velocity.y -= gravity * delta
 	else:
 		velocity.y = 0.0
+
+
+## Returns Riff to the last solid ground he stood on if he has fallen out of the
+## world. The demo must be completable without developer intervention, and falling
+## through a seam would otherwise strand the run.
+func _recover_if_fallen() -> void:
+	# is_on_floor() reports the previous move_and_slide, so it still reads true for
+	# a frame after falling. Requiring a sane height as well stops a fallen
+	# position being recorded as solid ground and recovered back into.
+	if is_on_floor() and global_position.y > fall_recovery_y:
+		_last_grounded_position = global_position
+		return
+
+	if global_position.y > fall_recovery_y:
+		return
+
+	global_position = _last_grounded_position + Vector3.UP * 0.5
+	velocity = Vector3.ZERO
+	is_dodging = false
+	is_invulnerable = false
+	push_warning("[PlayerController] Fell out of the world and was recovered.")
 
 
 func _unhandled_input(event: InputEvent) -> void:

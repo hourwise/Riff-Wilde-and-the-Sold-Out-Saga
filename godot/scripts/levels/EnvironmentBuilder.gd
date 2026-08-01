@@ -8,10 +8,14 @@ extends Node3D
 @export var arena_size: float = 50.0         ## Total width/depth of the square arena.
 @export var wall_height_levels: int = 2       ## How many wall segments to stack vertically.
 
-# ── Tile sizes (tune these to match your glTF piece dimensions) ──
-@export var floor_tile_size: float = 4.0      ## Width/depth of one floor tile.
-@export var wall_segment_size: float = 4.0    ## Width of one wall segment.
-@export var wall_segment_height: float = 4.0  ## Height of one wall segment.
+# ── Tile sizes ───────────────────────────────────────────────────
+# Measured from the kit with tools/inspect_model.gd, not guessed. Floor_Brick is
+# 2.0 x 2.0 and Wall_Plaster_Straight is 2.0 wide by 3.12 tall. These were
+# previously 4.0, which left a 2 m gap between every tile and a 0.9 m band of
+# daylight between stacked wall segments.
+@export var floor_tile_size: float = 2.0      ## Width/depth of one floor tile.
+@export var wall_segment_size: float = 2.0    ## Width of one wall segment.
+@export var wall_segment_height: float = 3.12 ## Height of one wall segment.
 
 # ── glTF resource paths ──────────────────────────────────────────
 @export var floor_piece_path: String = "res://glTF/Floor_Brick.gltf"
@@ -82,7 +86,11 @@ func _build_floor() -> void:
 		for z: int in range(tile_count):
 			var pos_x: float = start_offset + float(x) * floor_tile_size
 			var pos_z: float = start_offset + float(z) * floor_tile_size
-			_place_piece(_floor_scene, Vector3(pos_x, 0.0, pos_z), Vector3.ZERO, "Floor")
+			# No per-tile collision: a single ground box below covers the whole
+			# arena. Hundreds of separate concave colliders meeting edge to edge
+			# is wasteful and a reliable way to catch or drop a character
+			# through a seam.
+			_place_piece(_floor_scene, Vector3(pos_x, 0.0, pos_z), Vector3.ZERO, "Floor", Vector3.ONE, false)
 
 
 # ── Walls ────────────────────────────────────────────────────────
@@ -122,7 +130,10 @@ func _build_walls() -> void:
 			var yaw: float = wdef["yaw"]
 
 			for level: int in range(wall_height_levels):
-				var height_offset: float = wall_segment_height / 2.0 + float(level) * wall_segment_height
+				# Wall meshes are bottom-anchored: their origin sits at the base,
+				# not the centre. Offsetting by half a segment would float the
+				# whole ring half a wall above the floor.
+				var height_offset: float = float(level) * wall_segment_height
 				var stacked_pos: Vector3 = Vector3(pos.x, height_offset, pos.z)
 
 				# Mix in variant wall pieces occasionally.
@@ -148,7 +159,8 @@ func _build_corners() -> void:
 
 	for i: int in range(4):
 		for level: int in range(wall_height_levels):
-			var h: float = wall_segment_height / 2.0 + float(level) * wall_segment_height
+			# Bottom-anchored, matching the wall segments.
+			var h: float = float(level) * wall_segment_height
 			var pos: Vector3 = Vector3(corner_positions[i].x, h, corner_positions[i].z)
 			_place_piece(_corner_scene, pos, Vector3(0.0, corner_yaws[i], 0.0), "Corner")
 
@@ -182,7 +194,8 @@ func _build_trees() -> void:
 			var scene: PackedScene = _tree_thin_scene if (_tree_thin_scene and randf() < 0.5) else _tree_scene
 			var yaw: float = randf_range(0.0, TAU)
 			var scale: float = randf_range(0.8, 1.3)
-			_place_piece(scene, pos, Vector3(0.0, yaw, 0.0), "Tree", Vector3(scale, scale, scale))
+			# Decorative and outside the walls; collision would cost more than it adds.
+			_place_piece(scene, pos, Vector3(0.0, yaw, 0.0), "Tree", Vector3(scale, scale, scale), false)
 
 
 # ── Collision floor (invisible physics ground) ───────────────────
@@ -206,7 +219,14 @@ func _build_collision_floor() -> void:
 
 # ── Helpers ──────────────────────────────────────────────────────
 
-func _place_piece(scene: PackedScene, position: Vector3, rotation_euler: Vector3, label: String, scale_override: Vector3 = Vector3.ONE) -> void:
+func _place_piece(
+	scene: PackedScene,
+	position: Vector3,
+	rotation_euler: Vector3,
+	label: String,
+	scale_override: Vector3 = Vector3.ONE,
+	with_collision: bool = true
+) -> void:
 	if not scene:
 		return
 
@@ -220,8 +240,8 @@ func _place_piece(scene: PackedScene, position: Vector3, rotation_euler: Vector3
 		node3d.rotation = rotation_euler
 		node3d.scale = scale_override
 
-		# Ensure the piece has collision by adding a StaticBody3D sibling if needed.
-		_ensure_collision(node3d)
+		if with_collision:
+			_ensure_collision(node3d)
 
 
 func _ensure_collision(node: Node3D) -> void:
