@@ -268,6 +268,8 @@ func _on_health_changed(value: float, max_value: float) -> void:
 	if value < _last_health:
 		EventBus.player_damaged.emit(_last_health - value, value / maxf(max_value, 1.0))
 		visual.play_hit()
+	elif value > _last_health:
+		EventBus.player_healed.emit(value - _last_health, value / maxf(max_value, 1.0))
 	_last_health = value
 
 

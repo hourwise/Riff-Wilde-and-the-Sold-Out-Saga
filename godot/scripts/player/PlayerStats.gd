@@ -48,6 +48,17 @@ func _process(delta: float) -> void:
 	elif resonance > 0.0:
 		set_resonance(resonance - resonance_decay_rate * delta)
 
+## Restores health, capped at max. Returns the amount actually restored, which is
+## zero when already full — callers use that to decide whether to announce it.
+func heal(amount: float) -> float:
+	if amount <= 0.0 or is_depleted:
+		return 0.0
+
+	var before: float = health
+	set_health(health + amount)
+	return health - before
+
+
 func take_damage(amount: float) -> void:
 	if not can_take_damage():
 		return

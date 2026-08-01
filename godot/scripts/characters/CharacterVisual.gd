@@ -30,9 +30,15 @@ extends Node3D
 ## Normalised speed above which locomotion switches from idle to run.
 @export var run_threshold: float = 0.12
 @export var blend_seconds: float = 0.14
-## Playback rate applied to the run clip at full speed, so the stride roughly
-## matches the movement speed instead of sliding.
+## Playback rate of the run clip at FULL speed. Below full speed the rate scales
+## down in proportion, so stride rate tracks ground speed.
+##
+## Tuned per character against its clip: a clip authored as a sprint played over a
+## shambling walk reads as running on the spot, however correct the movement is.
 @export var run_speed_scale: float = 1.35
+## Floor for the scaled playback rate, so a barely-moving character still animates
+## rather than freezing mid-stride.
+@export var min_run_speed_scale: float = 0.25
 
 @export_group("Procedural fallback")
 @export var procedural_mesh_path: NodePath
@@ -95,7 +101,15 @@ func play_locomotion(speed_ratio: float) -> void:
 	if _animation_player.current_animation != String(clip):
 		_animation_player.play(String(clip), blend_seconds)
 
-	_animation_player.speed_scale = lerpf(1.0, run_speed_scale, clampf(speed_ratio, 0.0, 1.0)) if moving else 1.0
+	# Proportional, not interpolated from 1.0. Lerping toward run_speed_scale meant
+	# that for any character whose clip needs slowing down, moving slower made the
+	# animation play FASTER — the opposite of what stride matching requires.
+	if moving:
+		_animation_player.speed_scale = maxf(
+			min_run_speed_scale, clampf(speed_ratio, 0.0, 1.0) * run_speed_scale
+		)
+	else:
+		_animation_player.speed_scale = 1.0
 
 
 ## step_index selects the matching clip from attack_animations, wrapping if the

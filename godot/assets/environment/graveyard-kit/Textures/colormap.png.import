@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cgswdwprp0naf"
-path="res://.godot/imported/colormap.png-1d31a5f90f63c603bacfe117ed8afc0d.ctex"
+uid="uid://duk7yhdrljpnh"
+path="res://.godot/imported/colormap.png-fb38a4dfb1e239c054b77cc3e4bfedf4.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/environment/graveyard-kit/colormap.png"
-dest_files=["res://.godot/imported/colormap.png-1d31a5f90f63c603bacfe117ed8afc0d.ctex"]
+source_file="res://assets/environment/graveyard-kit/Textures/colormap.png"
+dest_files=["res://.godot/imported/colormap.png-fb38a4dfb1e239c054b77cc3e4bfedf4.ctex"]
 
 [params]
 

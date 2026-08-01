@@ -34,7 +34,7 @@ idle_animation = &"SpiderArmature|Spider_Idle"
 run_animation = &"SpiderArmature|Spider_Walk"
 attack_animations = Array[StringName]([&"SpiderArmature|Spider_Attack", &"SpiderArmature|Spider_Jump"])
 death_animation = &"SpiderArmature|Spider_Death"
-run_speed_scale = 2.2
+run_speed_scale = 1.4
 procedural_mesh_path = NodePath(".")
 
 [node name="Model" parent="CharacterVisual" instance=ExtResource("7_model")]

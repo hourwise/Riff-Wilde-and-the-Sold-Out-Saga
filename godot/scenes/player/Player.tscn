@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3 uid="uid://b1c2d3e4f5a6"]
+[gd_scene load_steps=23 format=3 uid="uid://b1c2d3e4f5a6"]
 
 [ext_resource type="Script" path="res://scripts/player/PlayerController.gd" id="1_controller"]
 [ext_resource type="Script" path="res://scripts/player/PlayerStateMachine.gd" id="2_state_machine"]
@@ -15,6 +15,7 @@
 [ext_resource type="Script" path="res://scripts/combat/CombatStateTracker.gd" id="13_combat_state"]
 [ext_resource type="PackedScene" path="res://Models/GLB format/character-soldier.glb" id="14_body"]
 [ext_resource type="PackedScene" path="res://Models/GLB format/weapon-spear.glb" id="15_weapon"]
+[ext_resource type="Script" path="res://scripts/player/HealthRegen.gd" id="16_regen"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
 radius = 0.5
@@ -67,7 +68,7 @@ idle_animation = &"idle"
 run_animation = &"sprint"
 attack_animations = Array[StringName]([&"attack-melee-right", &"attack-melee-left", &"attack-melee-right"])
 death_animation = &"die"
-run_speed_scale = 1.6
+run_speed_scale = 1.15
 procedural_mesh_path = NodePath(".")
 
 ; Yawed 180 degrees: this model is authored facing +Z, while Godot's forward and
@@ -143,3 +144,6 @@ script = ExtResource("12_summoner")
 
 [node name="CombatStateTracker" type="Node" parent="."]
 script = ExtResource("13_combat_state")
+
+[node name="HealthRegen" type="Node" parent="."]
+script = ExtResource("16_regen")
