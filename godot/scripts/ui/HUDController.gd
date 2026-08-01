@@ -184,6 +184,17 @@ func show_center_message(message: String) -> void:
 	center_message_label.visible = true
 	center_message_label.modulate.a = 1.0
 
+## Hides the centre message immediately. Used when a contextual prompt stops
+## applying — walking away from an altar, for instance — where fading out would
+## leave stale instructions on screen.
+func clear_center_message() -> void:
+	if center_message_tween:
+		center_message_tween.kill()
+		center_message_tween = null
+
+	center_message_label.visible = false
+
+
 func show_temporary_center_message(message: String, duration: float = 1.8) -> void:
 	show_center_message(message)
 
