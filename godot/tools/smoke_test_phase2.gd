@@ -31,6 +31,7 @@ func _initialize() -> void:
 		quit(1)
 		return
 
+	_test_player_visual(player)
 	_test_attack_chain(player)
 	_test_dodge_iframes(player)
 	await _test_camera_framing(player)
@@ -48,6 +49,24 @@ func _initialize() -> void:
 
 
 # ── Tests ────────────────────────────────────────────────────────
+
+## The player must be driven by a real AnimationPlayer with every configured clip
+## present. A renamed or misspelled clip is skipped silently, leaving Riff sliding
+## around in a bind pose — which no other check would notice.
+func _test_player_visual(player: Node3D) -> void:
+	var visual: Node = player.get("visual")
+	if not _check(visual != null, "player has a CharacterVisual"):
+		return
+
+	if not _check(bool(visual.call("has_animations")), "player is driven by an AnimationPlayer"):
+		return
+
+	var missing: Array = visual.call("get_missing_clips")
+	_check(
+		missing.is_empty(),
+		"player clip names all resolve%s" % ("" if missing.is_empty() else " (missing: %s)" % str(missing))
+	)
+
 
 func _test_attack_chain(player: Node3D) -> void:
 	var strike: Node = player.get_node_or_null("StrikeController")

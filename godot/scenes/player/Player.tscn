@@ -1,4 +1,4 @@
-[gd_scene load_steps=20 format=3 uid="uid://b1c2d3e4f5a6"]
+[gd_scene load_steps=22 format=3 uid="uid://b1c2d3e4f5a6"]
 
 [ext_resource type="Script" path="res://scripts/player/PlayerController.gd" id="1_controller"]
 [ext_resource type="Script" path="res://scripts/player/PlayerStateMachine.gd" id="2_state_machine"]
@@ -13,6 +13,8 @@
 [ext_resource type="Script" path="res://scripts/player/EncoreMeter.gd" id="11_encore"]
 [ext_resource type="Script" path="res://scripts/player/CompanionSummoner.gd" id="12_summoner"]
 [ext_resource type="Script" path="res://scripts/combat/CombatStateTracker.gd" id="13_combat_state"]
+[ext_resource type="PackedScene" path="res://Models/GLB format/character-soldier.glb" id="14_body"]
+[ext_resource type="PackedScene" path="res://Models/GLB format/weapon-spear.glb" id="15_weapon"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
 radius = 0.5
@@ -56,17 +58,29 @@ shape = SubResource("CapsuleShape3D_player")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
-mesh = SubResource("CapsuleMesh_player")
 
+; Placeholder body until Riff's own model is finished. Animation names come from
+; the pack; swapping the model means changing them and nothing else.
 [node name="CharacterVisual" type="Node3D" parent="MeshInstance3D"]
 script = ExtResource("10_character_visual")
+idle_animation = &"idle"
+run_animation = &"sprint"
+attack_animations = Array[StringName]([&"attack-melee-right", &"attack-melee-left", &"attack-melee-right"])
+death_animation = &"die"
+run_speed_scale = 1.6
+procedural_mesh_path = NodePath(".")
+
+[node name="Body" parent="MeshInstance3D/CharacterVisual" instance=ExtResource("14_body")]
+transform = Transform3D(3.8, 0, 0, 0, 3.8, 0, 0, 0, 3.8, 0, -1, 0)
 
 [node name="LuteWeapon" type="Node3D" parent="MeshInstance3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, 0.2, -0.4)
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="MeshInstance3D/LuteWeapon"]
 transform = Transform3D(1, 0, 0, 0, 0.866025, 0.5, 0, -0.5, 0.866025, 0, 0.4, 0)
-mesh = SubResource("BoxMesh_lute")
+
+[node name="Weapon" parent="MeshInstance3D/LuteWeapon/MeshInstance3D" instance=ExtResource("15_weapon")]
+transform = Transform3D(2.6, 0, 0, 0, 2.6, 0, 0, 0, 2.6, 0, -0.9, 0)
 
 [node name="Hitbox" type="Area3D" parent="MeshInstance3D/LuteWeapon"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.4, 0, -0.8)
