@@ -5,6 +5,7 @@
 [ext_resource type="Script" path="res://scripts/levels/ChurchBuilder.gd" id="3_church"]
 [ext_resource type="Script" path="res://scripts/world/FuneralAltar.gd" id="4_altar"]
 [ext_resource type="Script" path="res://scripts/world/EnemyEncounter.gd" id="5_encounter"]
+[ext_resource type="Script" path="res://scripts/world/RovingPatrol.gd" id="11_patrol"]
 [ext_resource type="Script" path="res://scripts/world/AltarNetwork.gd" id="6_network"]
 [ext_resource type="Script" path="res://scripts/world/ChurchBell.gd" id="7_bell"]
 [ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="8_player"]
@@ -86,7 +87,7 @@ navigation_mesh = SubResource("Nav_graveyard")
 script = ExtResource("2_graveyard")
 
 [node name="Church" type="Node3D" parent="NavigationRegion3D"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -72)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -140)
 script = ExtResource("3_church")
 
 [node name="ChurchBell" type="Node3D" parent="NavigationRegion3D/Church"]
@@ -99,27 +100,109 @@ script = ExtResource("6_network")
 [node name="SpawnPoints" type="Node3D" parent="."]
 
 [node name="from_inn" type="Marker3D" parent="SpawnPoints"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 22)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 40)
+
+[node name="Encounter_Gate" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0, 16.0)
+script = ExtResource("5_encounter")
+spawns = Array[PackedScene]([ExtResource("10_tonedeaf"), ExtResource("10_tonedeaf")])
+activation_radius = 22.0
+
+[node name="Encounter_GraveyardEast" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22.0, 0, 4.0)
+script = ExtResource("5_encounter")
+spawns = Array[PackedScene]([ExtResource("10_tonedeaf"), ExtResource("10_tonedeaf"), ExtResource("10_tonedeaf"), ExtResource("10_gravecrawler")])
+activation_radius = 24.0
+
+[node name="Encounter_GraveyardWest" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24.0, 0, -8.0)
+script = ExtResource("5_encounter")
+spawns = Array[PackedScene]([ExtResource("10_gravecrawler"), ExtResource("10_gravecrawler"), ExtResource("10_gravecrawler"), ExtResource("10_hollowchoir")])
+activation_radius = 24.0
 
 [node name="Encounter_Graveyard" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0, -2.0)
 script = ExtResource("5_encounter")
-spawns = Array[PackedScene]([ExtResource("10_tonedeaf"), ExtResource("10_tonedeaf"), ExtResource("10_tonedeaf"), ExtResource("10_gravecrawler")])
+spawns = Array[PackedScene]([ExtResource("10_hollowchoir"), ExtResource("10_tonedeaf"), ExtResource("10_tonedeaf"), ExtResource("10_tonedeaf"), ExtResource("10_gravecrawler")])
+activation_radius = 26.0
 
-[node name="Encounter_Crypts" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.0, 0, -34.0)
+[node name="Encounter_HollowPath" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52.0, 0, -4.0)
 script = ExtResource("5_encounter")
-spawns = Array[PackedScene]([ExtResource("10_gravecrawler"), ExtResource("10_gravecrawler"), ExtResource("10_gravecrawler"), ExtResource("10_hollowchoir")])
+spawns = Array[PackedScene]([ExtResource("10_gravecrawler"), ExtResource("10_gravecrawler"), ExtResource("10_gravecrawler")])
+activation_radius = 22.0
+
+[node name="Encounter_HollowShrine" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64.0, 0, -6.0)
+script = ExtResource("5_encounter")
+spawns = Array[PackedScene]([ExtResource("10_bonebellringer"), ExtResource("10_hollowchoir"), ExtResource("10_hollowchoir")])
+activation_radius = 24.0
+
+[node name="Encounter_MausoleumApproach" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46.0, 0, -30.0)
+script = ExtResource("5_encounter")
+spawns = Array[PackedScene]([ExtResource("10_tonedeaf"), ExtResource("10_tonedeaf"), ExtResource("10_gravecrawler"), ExtResource("10_gravecrawler"), ExtResource("10_gravecrawler")])
+activation_radius = 24.0
 
 [node name="Encounter_Mausoleum" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30.0, 0, -34.0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64.0, 0, -44.0)
 script = ExtResource("5_encounter")
-spawns = Array[PackedScene]([ExtResource("10_tonedeaf"), ExtResource("10_tonedeaf"), ExtResource("10_hollowchoir"), ExtResource("10_bonebellringer")])
+spawns = Array[PackedScene]([ExtResource("10_bonebellringer"), ExtResource("10_hollowchoir"), ExtResource("10_hollowchoir"), ExtResource("10_tonedeaf"), ExtResource("10_tonedeaf")])
+activation_radius = 26.0
+
+[node name="Encounter_MausoleumDeep" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -74.0, 0, -58.0)
+script = ExtResource("5_encounter")
+spawns = Array[PackedScene]([ExtResource("10_hollowchoir"), ExtResource("10_gravecrawler"), ExtResource("10_gravecrawler"), ExtResource("10_gravecrawler"), ExtResource("10_gravecrawler")])
+activation_radius = 22.0
+
+[node name="Encounter_MazeMouth" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 56.2, 0, -38.0)
+script = ExtResource("5_encounter")
+spawns = Array[PackedScene]([ExtResource("10_tonedeaf"), ExtResource("10_hollowchoir"), ExtResource("10_hollowchoir"), ExtResource("10_hollowchoir")])
+activation_radius = 22.0
+
+[node name="Encounter_MazeCorridor" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 41.8, 0, -58.6)
+script = ExtResource("5_encounter")
+spawns = Array[PackedScene]([ExtResource("10_gravecrawler"), ExtResource("10_gravecrawler"), ExtResource("10_gravecrawler")])
+activation_radius = 16.0
+
+[node name="Encounter_MazeChamber" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 67.0, 0, -76.6)
+script = ExtResource("5_encounter")
+spawns = Array[PackedScene]([ExtResource("10_bonebellringer"), ExtResource("10_hollowchoir"), ExtResource("10_hollowchoir"), ExtResource("10_gravecrawler"), ExtResource("10_gravecrawler")])
+activation_radius = 20.0
+
+[node name="Encounter_BoneFieldEast" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18.0, 0, -92.0)
+script = ExtResource("5_encounter")
+spawns = Array[PackedScene]([ExtResource("10_bonebellringer"), ExtResource("10_tonedeaf"), ExtResource("10_tonedeaf"), ExtResource("10_tonedeaf"), ExtResource("10_tonedeaf")])
+activation_radius = 24.0
+
+[node name="Encounter_BoneFieldWest" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.0, 0, -96.0)
+script = ExtResource("5_encounter")
+spawns = Array[PackedScene]([ExtResource("10_hollowchoir"), ExtResource("10_hollowchoir"), ExtResource("10_gravecrawler"), ExtResource("10_gravecrawler"), ExtResource("10_gravecrawler")])
+activation_radius = 24.0
+
+[node name="Encounter_BoneFieldCross" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0, -104.0)
+script = ExtResource("5_encounter")
+spawns = Array[PackedScene]([ExtResource("10_bonebellringer"), ExtResource("10_bonebellringer"), ExtResource("10_tonedeaf"), ExtResource("10_tonedeaf")])
+activation_radius = 26.0
+
+[node name="Encounter_CourtyardApproach" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0, -114.0)
+script = ExtResource("5_encounter")
+spawns = Array[PackedScene]([ExtResource("10_hollowchoir"), ExtResource("10_hollowchoir"), ExtResource("10_hollowchoir"), ExtResource("10_gravecrawler"), ExtResource("10_gravecrawler")])
+activation_radius = 26.0
 
 [node name="Encounter_Courtyard" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0, -60.0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0, -126.0)
 script = ExtResource("5_encounter")
-spawns = Array[PackedScene]([ExtResource("10_bonebellringer"), ExtResource("10_hollowchoir"), ExtResource("10_gravecrawler"), ExtResource("10_gravecrawler"), ExtResource("10_tonedeaf")])
+spawns = Array[PackedScene]([ExtResource("10_bonebellringer"), ExtResource("10_hollowchoir"), ExtResource("10_hollowchoir"), ExtResource("10_gravecrawler"), ExtResource("10_gravecrawler"), ExtResource("10_tonedeaf"), ExtResource("10_tonedeaf")])
+activation_radius = 28.0
 
 [node name="Altar_graveyard" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0, 0.0)
@@ -131,18 +214,8 @@ encounter_path = NodePath("../Encounter_Graveyard")
 [node name="Mesh" parent="Altar_graveyard" instance=ExtResource("9_altarmesh")]
 transform = Transform3D(2.4, 0, 0, 0, 2.4, 0, 0, 0, 2.4, 0, 0, 0)
 
-[node name="Altar_crypts" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.0, 0, -32.0)
-script = ExtResource("4_altar")
-altar_id = &"crypts"
-display_name = "Crypt Altar"
-encounter_path = NodePath("../Encounter_Crypts")
-
-[node name="Mesh" parent="Altar_crypts" instance=ExtResource("9_altarmesh")]
-transform = Transform3D(2.4, 0, 0, 0, 2.4, 0, 0, 0, 2.4, 0, 0, 0)
-
 [node name="Altar_mausoleum" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30.0, 0, -32.0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64.0, 0, -44.0)
 script = ExtResource("4_altar")
 altar_id = &"mausoleum"
 display_name = "Mausoleum Altar"
@@ -151,8 +224,18 @@ encounter_path = NodePath("../Encounter_Mausoleum")
 [node name="Mesh" parent="Altar_mausoleum" instance=ExtResource("9_altarmesh")]
 transform = Transform3D(2.4, 0, 0, 0, 2.4, 0, 0, 0, 2.4, 0, 0, 0)
 
+[node name="Altar_crypts" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 67.0, 0, -76.6)
+script = ExtResource("4_altar")
+altar_id = &"crypts"
+display_name = "Crypt Altar"
+encounter_path = NodePath("../Encounter_MazeChamber")
+
+[node name="Mesh" parent="Altar_crypts" instance=ExtResource("9_altarmesh")]
+transform = Transform3D(2.4, 0, 0, 0, 2.4, 0, 0, 0, 2.4, 0, 0, 0)
+
 [node name="Altar_courtyard" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0, -58.0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0, -124.0)
 script = ExtResource("4_altar")
 altar_id = &"courtyard"
 display_name = "Church Altar"
@@ -162,4 +245,110 @@ encounter_path = NodePath("../Encounter_Courtyard")
 transform = Transform3D(2.4, 0, 0, 0, 2.4, 0, 0, 0, 2.4, 0, 0, 0)
 
 [node name="Player" parent="." instance=ExtResource("8_player")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 22)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 40)
+
+[node name="Patrol_GraveyardSweep" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 0, 8)
+script = ExtResource("11_patrol")
+spawns = Array[PackedScene]([ExtResource("10_tonedeaf"), ExtResource("10_tonedeaf")])
+route = Array[NodePath]([NodePath("Point0"), NodePath("Point1"), NodePath("Point2"), NodePath("Point3"), NodePath("Point4"), NodePath("Point5")])
+
+[node name="Point0" type="Marker3D" parent="Patrol_GraveyardSweep"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+
+[node name="Point1" type="Marker3D" parent="Patrol_GraveyardSweep"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22, 0, 6)
+
+[node name="Point2" type="Marker3D" parent="Patrol_GraveyardSweep"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44, 0, 0)
+
+[node name="Point3" type="Marker3D" parent="Patrol_GraveyardSweep"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 56, 0, -18)
+
+[node name="Point4" type="Marker3D" parent="Patrol_GraveyardSweep"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34, 0, -22)
+
+[node name="Point5" type="Marker3D" parent="Patrol_GraveyardSweep"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, -16)
+
+[node name="Patrol_HollowWanderer" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 56, 0, 6)
+script = ExtResource("11_patrol")
+spawns = Array[PackedScene]([ExtResource("10_gravecrawler"), ExtResource("10_gravecrawler")])
+route = Array[NodePath]([NodePath("Point0"), NodePath("Point1"), NodePath("Point2"), NodePath("Point3")])
+
+[node name="Point0" type="Marker3D" parent="Patrol_HollowWanderer"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+
+[node name="Point1" type="Marker3D" parent="Patrol_HollowWanderer"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0, -8)
+
+[node name="Point2" type="Marker3D" parent="Patrol_HollowWanderer"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0, -24)
+
+[node name="Point3" type="Marker3D" parent="Patrol_HollowWanderer"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0, -18)
+
+[node name="Patrol_MausoleumWatch" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -52, 0, -26)
+script = ExtResource("11_patrol")
+spawns = Array[PackedScene]([ExtResource("10_tonedeaf"), ExtResource("10_hollowchoir")])
+route = Array[NodePath]([NodePath("Point0"), NodePath("Point1"), NodePath("Point2"), NodePath("Point3"), NodePath("Point4")])
+
+[node name="Point0" type="Marker3D" parent="Patrol_MausoleumWatch"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+
+[node name="Point1" type="Marker3D" parent="Patrol_MausoleumWatch"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, -8)
+
+[node name="Point2" type="Marker3D" parent="Patrol_MausoleumWatch"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26, 0, -28)
+
+[node name="Point3" type="Marker3D" parent="Patrol_MausoleumWatch"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0, -34)
+
+[node name="Point4" type="Marker3D" parent="Patrol_MausoleumWatch"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, -14)
+
+[node name="Patrol_BoneFieldRovers" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26, 0, -80)
+script = ExtResource("11_patrol")
+spawns = Array[PackedScene]([ExtResource("10_gravecrawler"), ExtResource("10_gravecrawler"), ExtResource("10_tonedeaf")])
+route = Array[NodePath]([NodePath("Point0"), NodePath("Point1"), NodePath("Point2"), NodePath("Point3"), NodePath("Point4"), NodePath("Point5")])
+
+[node name="Point0" type="Marker3D" parent="Patrol_BoneFieldRovers"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+
+[node name="Point1" type="Marker3D" parent="Patrol_BoneFieldRovers"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22, 0, -8)
+
+[node name="Point2" type="Marker3D" parent="Patrol_BoneFieldRovers"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48, 0, -2)
+
+[node name="Point3" type="Marker3D" parent="Patrol_BoneFieldRovers"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52, 0, -24)
+
+[node name="Point4" type="Marker3D" parent="Patrol_BoneFieldRovers"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26, 0, -28)
+
+[node name="Point5" type="Marker3D" parent="Patrol_BoneFieldRovers"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -20)
+
+[node name="Patrol_CourtyardVigil" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, 0, -118)
+script = ExtResource("11_patrol")
+spawns = Array[PackedScene]([ExtResource("10_hollowchoir"), ExtResource("10_hollowchoir")])
+route = Array[NodePath]([NodePath("Point0"), NodePath("Point1"), NodePath("Point2"), NodePath("Point3")])
+
+[node name="Point0" type="Marker3D" parent="Patrol_CourtyardVigil"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+
+[node name="Point1" type="Marker3D" parent="Patrol_CourtyardVigil"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42, 0, -2)
+
+[node name="Point2" type="Marker3D" parent="Patrol_CourtyardVigil"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 46, 0, -18)
+
+[node name="Point3" type="Marker3D" parent="Patrol_CourtyardVigil"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, -16)
+

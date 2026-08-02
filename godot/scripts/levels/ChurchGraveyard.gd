@@ -7,8 +7,8 @@ extends Node3D
 ## coordinates, it does not implement.
 
 ## Where the boss appears once the bell has rung.
-@export var boss_spawn: Vector3 = Vector3(0.0, 0.0, -58.0)
-@export var player_spawn: Vector3 = Vector3(0.0, 1.0, 22.0)
+@export var boss_spawn: Vector3 = Vector3(0.0, 0.0, -126.0)
+@export var player_spawn: Vector3 = Vector3(0.0, 1.0, 40.0)
 @export var return_scene: String = "res://scenes/levels/TavernHub.tscn"
 
 @onready var navigation_region: NavigationRegion3D = $NavigationRegion3D

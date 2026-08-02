@@ -107,7 +107,16 @@ func _merge_animation_libraries() -> void:
 		_animation_player.name = "AnimationPlayer"
 		model.add_child(_animation_player)
 
-	var merged := AnimationLibrary.new()
+	# Reuse the default library when the model already ships one. Adding a second
+	# library under the same name fails silently and leaves every merged clip
+	# missing, which looks identical to having configured the wrong names.
+	# Asked before fetching: get_animation_library on a name that is not there
+	# returns null but also logs an engine error, and every enemy spawn printed one.
+	var is_new_library: bool = not _animation_player.has_animation_library("")
+	var merged: AnimationLibrary = (
+		AnimationLibrary.new() if is_new_library else _animation_player.get_animation_library("")
+	)
+
 	var clashes: int = 0
 
 	for scene: PackedScene in animation_libraries:
@@ -125,7 +134,8 @@ func _merge_animation_libraries() -> void:
 				merged.add_animation(clip, source_player.get_animation(clip).duplicate())
 		source.free()
 
-	_animation_player.add_animation_library("", merged)
+	if is_new_library:
+		_animation_player.add_animation_library("", merged)
 	_apply_loop_modes()
 
 

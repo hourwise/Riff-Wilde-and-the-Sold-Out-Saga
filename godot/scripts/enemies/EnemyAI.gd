@@ -18,6 +18,17 @@ enum State { IDLE, CHASE, ATTACK, STAGGER, DEAD }
 ## able to silently delete an enemy the player still needs to defeat.
 @export var fall_recovery_y: float = -20.0
 
+@export_group("Patrol")
+## Fraction of move speed used while patrolling. A roving mob that ambles reads as
+## part of the world; one that sprints its route reads as already hunting you, and
+## the player cannot tell it apart from a group that has noticed them.
+@export var patrol_speed_ratio: float = 0.45
+## How close counts as having reached a waypoint. Generous, because steering paths
+## around scenery and will rarely land on the exact point.
+@export var patrol_arrive_distance: float = 2.0
+## Pause on arriving, so a patrol looks like it is searching rather than orbiting.
+@export var patrol_pause_seconds: float = 1.6
+
 var current_state: State = State.IDLE
 var target: PlayerController = null
 
@@ -39,6 +50,12 @@ var _buff_timer: float = 0.0
 
 ## Last position where the enemy was standing on something solid.
 var _last_grounded_position: Vector3 = Vector3.ZERO
+
+## World-space route walked while idle, assigned by whatever placed this enemy.
+## Empty means stand still, which is what a guard posted at an altar should do.
+var patrol_points: PackedVector3Array = PackedVector3Array()
+var _patrol_index: int = 0
+var _patrol_pause_timer: float = 0.0
 
 @onready var steering: EnemySteering = get_node_or_null("EnemySteering") as EnemySteering
 @onready var visual: CharacterVisual = get_node_or_null("CharacterVisual") as CharacterVisual
@@ -79,7 +96,8 @@ func _physics_process(delta: float) -> void:
 		_cancel_attack()
 		_change_state(State.IDLE)
 		_apply_gravity(delta)
-		_apply_friction(delta)
+		_patrol(delta)
+		_update_visual()
 		move_and_slide()
 		return
 
@@ -152,6 +170,7 @@ func _recover_if_fallen() -> void:
 func _update_ai(delta: float) -> void:
 	if target == null:
 		_change_state(State.IDLE)
+		_patrol(delta)
 		return
 
 	var to_target: Vector3 = target.global_position - global_position
@@ -164,7 +183,7 @@ func _update_ai(delta: float) -> void:
 		chase_memory_timer = _stat_chase_memory()
 	elif distance > _stat_leash_range() or chase_memory_timer <= 0.0:
 		_change_state(State.IDLE)
-		_apply_friction(delta)
+		_patrol(delta)
 		return
 
 	if can_see and distance <= _stat_attack_range():
@@ -191,6 +210,43 @@ func _update_ai(delta: float) -> void:
 	var target_velocity: Vector3 = direction * _stat_move_speed()
 	velocity.x = move_toward(velocity.x, target_velocity.x, _stat_acceleration() * delta)
 	velocity.z = move_toward(velocity.z, target_velocity.z, _stat_acceleration() * delta)
+	_face(direction, delta)
+
+
+## Walks the assigned route while idle, and stands still without one.
+##
+## Deliberately part of the AI rather than a component bolted on beside it: a
+## sibling node would have to write velocity after this script had already called
+## move_and_slide, so its steering would always be one frame stale and fight the
+## friction applied here.
+func _patrol(delta: float) -> void:
+	if patrol_points.is_empty():
+		_apply_friction(delta)
+		return
+
+	if _patrol_pause_timer > 0.0:
+		_patrol_pause_timer -= delta
+		_apply_friction(delta)
+		return
+
+	var goal: Vector3 = patrol_points[_patrol_index]
+	var to_goal: Vector3 = goal - global_position
+	to_goal.y = 0.0
+
+	if to_goal.length() <= patrol_arrive_distance:
+		_patrol_index = (_patrol_index + 1) % patrol_points.size()
+		_patrol_pause_timer = patrol_pause_seconds
+		_apply_friction(delta)
+		return
+
+	var direction: Vector3 = steering.get_direction_to(goal) if steering != null else to_goal.normalized()
+	if direction == Vector3.ZERO:
+		_apply_friction(delta)
+		return
+
+	var speed: float = _stat_move_speed() * patrol_speed_ratio
+	velocity.x = move_toward(velocity.x, direction.x * speed, _stat_acceleration() * delta)
+	velocity.z = move_toward(velocity.z, direction.z * speed, _stat_acceleration() * delta)
 	_face(direction, delta)
 
 
