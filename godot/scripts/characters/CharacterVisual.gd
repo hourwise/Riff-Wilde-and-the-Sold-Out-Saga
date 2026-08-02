@@ -42,6 +42,8 @@ extends Node3D
 @export var hit_animation: StringName = &""
 @export var death_animation: StringName = &""
 @export var dodge_animation: StringName = &""
+## Played while Riff sings himself back together. A flourish, not a combat move.
+@export var song_animation: StringName = &""
 
 @export_group("Tuning")
 ## Normalised speed above which locomotion switches from idle to run.
@@ -194,7 +196,9 @@ func get_missing_clips() -> Array[StringName]:
 	if _animation_player == null:
 		return missing
 
-	var configured: Array[StringName] = [idle_animation, run_animation, hit_animation, death_animation, dodge_animation]
+	var configured: Array[StringName] = [
+		idle_animation, run_animation, hit_animation, death_animation, dodge_animation, song_animation
+	]
 	configured.append_array(attack_animations)
 
 	for clip: StringName in configured:
@@ -249,6 +253,15 @@ func play_hit() -> void:
 	if _play_one_shot(hit_animation):
 		return
 	_procedural_pulse(hit_squash, 0.05, 0.13)
+
+
+## Riff's restorative song. Named for what it is rather than exposing a clip
+## name to gameplay, so the seam holds: swapping the model changes this scene
+## property and nothing else.
+func play_song() -> void:
+	if _play_one_shot(song_animation):
+		return
+	_procedural_pulse(Vector3(0.94, 1.1, 0.94), 0.35, 0.45)
 
 
 func play_dodge(duration: float) -> void:

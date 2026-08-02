@@ -50,6 +50,13 @@ signal combat_ended()
 signal encore_changed(value: float, max_value: float)
 signal encore_tier_changed(tier: int)
 signal encore_full()
+
+## Riff's restorative song: the third way to regain health, and the only one that
+## costs anything. Announced so the HUD, the music and the audio can respond
+## without any of them knowing where the song lives.
+signal restorative_song_started(duration: float)
+signal restorative_song_completed(healed: float)
+signal restorative_song_interrupted()
 signal companion_summoned(companion_id: StringName)
 signal companion_attack_landed(companion_id: StringName)
 signal companion_dismissed(companion_id: StringName)

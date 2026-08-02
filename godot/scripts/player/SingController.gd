@@ -19,6 +19,11 @@ var aim_indicator: MeshInstance3D = null
 var aim_indicator_material: StandardMaterial3D = null
 
 @onready var player: PlayerController = get_parent()
+## Held as a plain Node, not typed. Naming the class here forces RestorativeSong
+## to compile whenever this script does — including from a test script compiled
+## before autoloads register, at which point its EventBus references cannot
+## resolve and both scripts fail to load.
+@onready var restorative_song: Node = get_node_or_null("../RestorativeSong")
 @onready var player_mesh: MeshInstance3D = get_node("../MeshInstance3D")
 @onready var sing_area: Hitbox = get_node("../MeshInstance3D/SingBlastArea")
 @onready var shockwave_mesh: MeshInstance3D = get_node("../MeshInstance3D/SingBlastArea/ShockwaveMesh")
@@ -42,6 +47,12 @@ func _process(delta: float) -> void:
 	if Input.is_action_just_pressed("sing") and not is_singing:
 		# Singing is locked out while dodging or staggered.
 		if player.is_dodging or player.state_machine.current_state == PlayerStateMachine.State.STAGGERED:
+			return
+
+		# Offered before the blast. Out of combat the blast has nothing to hit, so
+		# the same button becomes the restorative song; RestorativeSong itself
+		# decides whether the moment qualifies and reports why when it does not.
+		if restorative_song != null and bool(restorative_song.call("try_perform")):
 			return
 
 		var breath_cost: float = _get_current_breath_cost()

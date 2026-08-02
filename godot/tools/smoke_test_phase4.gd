@@ -35,6 +35,7 @@ func _initialize() -> void:
 	await _test_encore_decay()
 	await _test_combat_state()
 	await _test_companion()
+	await _test_restorative_song()
 
 	print("\n=== %d/%d checks passed ===" % [_checks - _failures, _checks])
 	if _failures > 0:
@@ -262,6 +263,113 @@ func _test_companion() -> void:
 
 	_bus.companion_summoned.disconnect(summon_handler)
 	_bus.companion_dismissed.disconnect(dismiss_handler)
+
+
+## Riff's restorative song: the only way to regain health that costs anything.
+##
+## Checked for the things that make it a decision rather than a free button — it
+## must refuse while enemies are engaged, must actually spend breath and
+## resonance, must reach past the passive regeneration ceiling, and must break
+## when the player is hit. Any one of those quietly failing turns it into a heal
+## button with extra steps.
+func _test_restorative_song() -> void:
+	var song: Node = _player.get_node_or_null("RestorativeSong")
+	if not _check(song != null, "RestorativeSong present on the player"):
+		return
+
+	var stats: Node = _player.get_node_or_null("PlayerStats")
+	var tracker: Node = _player.get_node_or_null("CombatStateTracker")
+	if not _check(stats != null and tracker != null, "stats and combat tracker available"):
+		return
+
+	var max_health: float = float(stats.get("max_health"))
+	var duration: float = float(song.get("channel_seconds"))
+
+	# Wounded, rested, and out of combat: the situation it exists for.
+	stats.call("set_health", max_health * 0.4)
+	stats.call("set_breath", float(stats.get("max_breath")))
+	stats.call("set_resonance", float(stats.get("max_resonance")))
+	tracker.set("is_in_combat", false)
+	await process_frame
+
+	_check(bool(song.call("can_sing")), "the song is available in a lull")
+
+	# Refused mid-fight. Healing to full while three skeletons watch is exactly
+	# what this must not allow.
+	tracker.set("is_in_combat", true)
+	await process_frame
+	_check(not bool(song.call("can_sing")), "the song is refused while in combat")
+	_check(
+		String(song.call("get_block_reason")) != "",
+		"and says why (%s)" % String(song.call("get_block_reason"))
+	)
+
+	tracker.set("is_in_combat", false)
+	await process_frame
+
+	var breath_before: float = float(stats.get("breath"))
+	var resonance_before: float = float(stats.get("resonance"))
+	var health_before: float = float(stats.get("health"))
+
+	var completed: Array[float] = []
+	var handler := func(healed: float) -> void: completed.append(healed)
+	_bus.restorative_song_completed.connect(handler)
+
+	_check(bool(song.call("try_perform")), "singing starts")
+	_check(bool(song.get("is_singing")), "and holds while it is sung")
+	_check(float(stats.get("breath")) < breath_before, "it spends breath")
+	_check(float(stats.get("resonance")) < resonance_before, "it spends resonance")
+	# Not instant: healing has to be committed to, or it is a panic button.
+	_check(is_equal_approx(float(stats.get("health")), health_before), "no health arrives before the song ends")
+
+	var deadline: SceneTreeTimer = create_timer(duration * 2.0 + 2.0, true, false, true)
+	var expired: Array[bool] = [false]
+	deadline.timeout.connect(func() -> void: expired[0] = true)
+	while completed.is_empty() and not expired[0]:
+		await process_frame
+
+	_check(completed.size() == 1, "the song completes and announces what it healed")
+	_check(float(stats.get("health")) > health_before, "health is restored (+%.0f)" % (float(stats.get("health")) - health_before))
+
+	# Past the passive ceiling, which is the point of paying for it.
+	var regen: Node = _player.get_node_or_null("HealthRegen")
+	if regen != null:
+		var ceiling: float = float(regen.get("regen_ceiling_ratio")) * max_health
+		stats.call("set_health", ceiling)
+		await process_frame
+		_check(bool(song.call("can_sing")), "it can still be sung at the regeneration ceiling")
+
+	_bus.restorative_song_completed.disconnect(handler)
+
+	# Interrupted by damage, with part of the cost handed back.
+	stats.call("set_health", max_health * 0.4)
+	stats.call("set_breath", float(stats.get("max_breath")))
+	stats.call("set_resonance", float(stats.get("max_resonance")))
+	await process_frame
+
+	song.call("try_perform")
+	await process_frame
+	var breath_spent: float = float(stats.get("breath"))
+	var interrupted: Array[int] = [0]
+	var interrupt_handler := func() -> void: interrupted[0] += 1
+	_bus.restorative_song_interrupted.connect(interrupt_handler)
+
+	var wounded: float = float(stats.get("health"))
+	_bus.player_damaged.emit(10.0, 0.4)
+	await process_frame
+
+	_check(interrupted[0] == 1, "taking a hit breaks the song")
+	_check(not bool(song.get("is_singing")), "and it stops being sung")
+	_check(float(stats.get("breath")) > breath_spent, "part of the breath is handed back")
+
+	for i in range(int(duration * 70.0)):
+		await process_frame
+	_check(
+		is_equal_approx(float(stats.get("health")), wounded),
+		"an interrupted song heals nothing"
+	)
+
+	_bus.restorative_song_interrupted.disconnect(interrupt_handler)
 
 
 # ── Helpers ──────────────────────────────────────────────────────
