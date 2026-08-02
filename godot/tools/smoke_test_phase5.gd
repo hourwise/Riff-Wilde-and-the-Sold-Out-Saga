@@ -117,10 +117,15 @@ func _test_navigation() -> void:
 		_check(false, "navigation map valid")
 		return
 
-	var spawn := Vector3(0.0, 0.0, 40.0)
+	# Probes are authored as ground positions, but the ground is generated and no
+	# longer at y=0. map_get_closest_point measures in three dimensions, so a probe
+	# left at zero over ground four metres up reports four metres off the navmesh
+	# while standing directly above it.
+	var builder: Node = _level.get_node_or_null("NavigationRegion3D/GraveyardBuilder")
+	var spawn: Vector3 = _on_ground(builder, Vector3(0.0, 0.0, 40.0))
 
 	for probe: Dictionary in [
-		{"at": spawn, "what": "the gate"},
+		{"at": Vector3(0.0, 0.0, 40.0), "what": "the gate"},
 		{"at": Vector3(0.0, 0.0, 0.0), "what": "the graveyard altar"},
 		{"at": Vector3(64.0, 0.0, -6.0), "what": "Weeping Hollow"},
 		{"at": Vector3(-64.0, 0.0, -44.0), "what": "the mausoleum altar"},
@@ -130,7 +135,7 @@ func _test_navigation() -> void:
 		{"at": Vector3(0.0, 0.0, -124.0), "what": "the church altar"},
 		{"at": Vector3(0.0, 0.0, -126.0), "what": "the boss arena"},
 	]:
-		var target: Vector3 = probe["at"]
+		var target: Vector3 = _on_ground(builder, probe["at"])
 		var closest: Vector3 = NavigationServer3D.map_get_closest_point(map, target)
 		_check(
 			closest.distance_to(target) < 3.0,
@@ -146,7 +151,7 @@ func _test_navigation() -> void:
 		{"at": Vector3(-64.0, 0.0, -44.0), "what": "the mausoleum altar"},
 		{"at": Vector3(0.0, 0.0, -126.0), "what": "the boss arena"},
 	]:
-		var target: Vector3 = destination["at"]
+		var target: Vector3 = _on_ground(builder, destination["at"])
 		var path: PackedVector3Array = NavigationServer3D.map_get_path(map, spawn, target, true)
 		var arrived: bool = path.size() >= 2 and path[-1].distance_to(target) < 4.0
 		_check(
@@ -157,6 +162,61 @@ func _test_navigation() -> void:
 				path[-1].distance_to(target) if path.size() > 0 else -1.0
 			]
 		)
+
+	_test_terrain_gates_access(map, builder)
+
+
+## The terrain has to do more than look uneven: some ground must be genuinely
+## impassable, or "you can cross that ridge but not this one" is not a rule the
+## player can learn.
+##
+## Measured as a detour rather than by probing a slope directly. A ridge that
+## reads as steep but is still walkable would pass any check on its geometry; the
+## question that matters is whether reaching the far side actually requires the
+## road. Weeping Hollow sits behind an authored bank with one way in, so the
+## walked route there should be far longer than the straight line.
+func _test_terrain_gates_access(map: RID, builder: Node) -> void:
+	# Started well off the road, so the straight line crosses the bank somewhere
+	# other than where the road cuts through it. Measuring from a point already on
+	# the road would compare the road against itself.
+	var from: Vector3 = _on_ground(builder, Vector3(30.0, 0.0, -22.0))
+	var to: Vector3 = _on_ground(builder, Vector3(64.0, 0.0, -6.0))
+
+	var path: PackedVector3Array = NavigationServer3D.map_get_path(map, from, to, true)
+	if not _check(path.size() >= 2, "a route into Weeping Hollow exists at all"):
+		return
+
+	var walked: float = 0.0
+	for index in range(path.size() - 1):
+		walked += path[index].distance_to(path[index + 1])
+
+	var direct: float = from.distance_to(to)
+	_check(
+		path[-1].distance_to(to) < 4.0,
+		"the route into Weeping Hollow arrives (%.1fm short)" % path[-1].distance_to(to)
+	)
+	_check(
+		walked > direct * 1.25,
+		"the ridge forces a detour rather than a straight walk in (%.0fm walked vs %.0fm direct)" % [walked, direct]
+	)
+
+	# And the bank's flank is off the navigation mesh, so nothing walks up it.
+	# Probed on the slope, not the crest: the top of a hill is legitimately flat,
+	# so a crest sample proves nothing either way.
+	var crest := Vector3(48.8, 0.0, -18.0)
+	var on_crest: Vector3 = _on_ground(builder, crest)
+	var closest: Vector3 = NavigationServer3D.map_get_closest_point(map, on_crest)
+	_check(
+		closest.distance_to(on_crest) > 1.5,
+		"the top of the bank is not walkable (%.1fm to the nearest navigable point)" % closest.distance_to(on_crest)
+	)
+
+
+## Raises an authored ground position onto the generated terrain.
+func _on_ground(builder: Node, point: Vector3) -> Vector3:
+	if builder == null or not builder.has_method("height_at"):
+		return point
+	return Vector3(point.x, float(builder.call("height_at", Vector2(point.x, point.z))), point.z)
 
 
 ## Procedural scenery that wanders into an altar plaza or across a path makes the
@@ -179,7 +239,11 @@ func _test_clearings() -> void:
 	for placement: Dictionary in placements:
 		var piece: String = placement["piece"]
 		# Roads and maze walls are authored structure and belong in a clearing.
+		# Ground cover does too: grass and loose stones across an altar plaza are
+		# what stop it looking like unfinished ground, and neither blocks anything.
 		if piece.begins_with("road") or piece.begins_with("stone-wall"):
+			continue
+		if piece.begins_with("forest/") or piece.begins_with("halloween/"):
 			continue
 
 		var point: Vector2 = placement["at"]

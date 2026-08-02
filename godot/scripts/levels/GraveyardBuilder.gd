@@ -18,6 +18,40 @@ extends Node3D
 
 const KIT: String = "res://assets/environment/graveyard-kit"
 
+## Where each art pack lives. A piece is named "pack/piece", or just "piece" for
+## the graveyard kit, which is most of them.
+##
+## The ground cover comes from KayKit's forest and Halloween packs because the
+## graveyard kit has none — it is headstones and buildings, with nothing to put
+## between them. Those packs ship .gltf referencing their textures by relative
+## path, so their folder structure has to be preserved on disk.
+const PACKS: Dictionary = {
+	"forest": {"dir": "res://assets/kaykit/forest/Assets/gltf", "ext": "gltf"},
+	"halloween": {"dir": "res://assets/kaykit/halloween/Assets/gltf", "ext": "gltf"},
+}
+
+## What grows between the graves. Scattered thickly and cheaply: all of it is
+## batched, none of it collides, and none of it is placed where the player walks.
+const GRASS: Array = [
+	"forest/Grass_1_A_Color1", "forest/Grass_1_B_Color1", "forest/Grass_1_C_Color1",
+	"forest/Grass_1_D_Color1", "forest/Grass_2_A_Color1", "forest/Grass_2_B_Color1",
+	"forest/Grass_2_C_Color1", "forest/Grass_2_D_Color1",
+]
+const STONES: Array = [
+	"forest/Rock_1_A_Color1", "forest/Rock_1_D_Color1", "forest/Rock_1_H_Color1",
+	"forest/Rock_2_B_Color1", "forest/Rock_2_E_Color1", "forest/Rock_3_C_Color1",
+	"forest/Rock_3_J_Color1", "forest/Rock_3_P_Color1",
+]
+const UNDERGROWTH: Array = [
+	"forest/Bush_1_A_Color1", "forest/Bush_1_D_Color1", "forest/Bush_2_B_Color1",
+	"forest/Bush_2_E_Color1", "forest/Bush_4_A_Color1", "forest/Bush_4_D_Color1",
+]
+## Scattered remains, for the districts that have earned them.
+const BONES: Array = [
+	"halloween/bone_A", "halloween/bone_B", "halloween/bone_C",
+	"halloween/skull", "halloween/ribcage",
+]
+
 ## Measured with tools/measure_kit_pieces.gd: kit pieces are ~1 unit where a
 ## character needs ~2, so everything is scaled uniformly and the grid follows.
 const KIT_SCALE: float = 2.0
@@ -213,6 +247,7 @@ var _batch_group: String = "world"
 ## Every piece placed, batched or not, as {piece, at}. The batched ones have no
 ## node to inspect afterwards, and the layout still has to be verifiable.
 var _placements: Array[Dictionary] = []
+var _terrain: GraveyardTerrain = null
 
 
 func _ready() -> void:
@@ -227,7 +262,7 @@ func build() -> void:
 	_scenery.name = "Scenery"
 	add_child(_scenery)
 
-	_build_ground()
+	_build_terrain()
 
 	_batch_group = "paths"
 	_build_paths()
@@ -241,6 +276,7 @@ func build() -> void:
 		_dress_region(region)
 	_batch_group = "world"
 
+	_scatter_ground_cover()
 	_flush_batches()
 	_build_forest()
 
@@ -255,6 +291,17 @@ static func region_at(position: Vector3) -> Dictionary:
 		if (region["rect"] as Rect2).has_point(Vector2(position.x, position.z)):
 			return region
 	return {}
+
+
+## Ground height at a world XZ position, for anything that has to sit on the
+## terrain — altars, spawn points, encounter markers, the church.
+func height_at(point: Vector2) -> float:
+	return _terrain.height_at(point) if _terrain != null else 0.0
+
+
+## The terrain node, for callers that need slope as well as height.
+func get_terrain() -> GraveyardTerrain:
+	return _terrain
 
 
 ## Every scenery piece placed, as {piece: String, at: Vector2}.
@@ -273,39 +320,55 @@ func get_dead_ends() -> Array[Vector2]:
 
 # ── Ground and walls ─────────────────────────────────────────────
 
-## One box for the whole cemetery floor. Reliable, seamless, and the only thing
-## the player actually stands on.
-func _build_ground() -> void:
-	var body := StaticBody3D.new()
-	body.name = "Ground"
-	body.collision_layer = 1
-	add_child(body)
+## Raises the terrain the whole cemetery stands on.
+##
+## Used to be a single flat box. The box was reliable and seamless, which is why
+## it lasted, but it also meant the level had no horizon of its own and nowhere
+## that was not immediately visible from everywhere else.
+##
+## The clearings and paths already authored for scenery are handed over as
+## levelling instructions, so a plaza is flat and a road runs along a slope
+## instead of across it — without having to describe the same places twice.
+func _build_terrain() -> void:
+	_terrain = GraveyardTerrain.new()
+	_terrain.name = "Terrain"
+	_terrain.ground_size = ground_size
+	_terrain.ground_centre = ground_centre
 
-	var shape := CollisionShape3D.new()
-	var box := BoxShape3D.new()
-	box.size = Vector3(ground_size.x, 2.0, ground_size.y)
-	shape.shape = box
-	shape.position = Vector3(ground_centre.x, -1.0, ground_centre.y)
-	body.add_child(shape)
+	var zones: Array[Dictionary] = []
+	for clearing: Dictionary in CLEARINGS:
+		# Level the plaza itself, then blend back over a similar distance, so a
+		# clearing sits in a saucer rather than on a pedestal.
+		var radius: float = float(clearing["radius"])
+		zones.append({"at": clearing["at"], "flat": radius * 0.8, "taper": radius * 0.9})
+	# The maze is walled and gridded; a slope through it would leave walls
+	# floating at one end and buried at the other.
+	# Wide enough that the whole maze, corners included, falls inside the fully
+	# level part of the zone rather than its taper. A corridor on a slope puts one
+	# end of a wall in the air and the other underground, and tilts the floor
+	# enough that navigation drops it — which seals off the crypt altar.
+	# Flat across the maze's own half-diagonal plus a margin, then a short taper.
+	# A long taper here reaches most of the cemetery and levels the ridges with it.
+	var maze_reach: float = Vector2(MAZE_COLS, MAZE_ROWS).length() * MAZE_CELL * 0.5
+	zones.append({
+		"at": MAZE_ORIGIN + Vector2(MAZE_COLS, MAZE_ROWS) * MAZE_CELL * 0.5,
+		"flat": maze_reach + 4.0,
+		"taper": 12.0,
+	})
+	_terrain.flatten_zones = zones
 
-	var mesh_instance := MeshInstance3D.new()
-	var plane := PlaneMesh.new()
-	plane.size = ground_size
-	var material := StandardMaterial3D.new()
-	# Damp earth: dark, desaturated, so torchlight and spectral flame carry all
-	# the colour in the scene.
-	material.albedo_color = Color(0.16, 0.14, 0.11)
-	material.roughness = 1.0
-	plane.material = material
-	mesh_instance.mesh = plane
-	mesh_instance.position = Vector3(ground_centre.x, 0.0, ground_centre.y)
-	body.add_child(mesh_instance)
+	var lines: Array[Dictionary] = []
+	for path: Dictionary in PATHS:
+		lines.append({
+			"points": path["points"],
+			"margin": 2.0 + float(path["width"]) * ROAD_TILE * 0.5,
+		})
+	_terrain.flatten_lines = lines
 
-	# Navigation is baked from this group, so the floor must be in it.
-	body.add_to_group("navmesh_source")
+	add_child(_terrain)
+	_terrain.build()
 
-	# A second, unwalkable apron under the forest. Without it the trees stand on
-	# nothing and the drop at the wall is visible over the fence line.
+	# An apron under the forest, so the ground does not visibly stop at the wall.
 	var apron := MeshInstance3D.new()
 	apron.name = "ForestFloor"
 	var apron_plane := PlaneMesh.new()
@@ -315,7 +378,7 @@ func _build_ground() -> void:
 	apron_material.roughness = 1.0
 	apron_plane.material = apron_material
 	apron.mesh = apron_plane
-	apron.position = Vector3(ground_centre.x, -0.15, ground_centre.y)
+	apron.position = Vector3(ground_centre.x, _terrain.height_at(ground_centre) - 1.2, ground_centre.y)
 	add_child(apron)
 
 
@@ -340,7 +403,9 @@ func _build_perimeter() -> void:
 		var box := BoxShape3D.new()
 		box.size = wall["size"]
 		shape.shape = box
-		shape.position = Vector3(ground_centre.x, 0.0, ground_centre.y) + (wall["offset"] as Vector3)
+		var at: Vector3 = Vector3(ground_centre.x, 0.0, ground_centre.y) + (wall["offset"] as Vector3)
+		at.y += height_at(Vector2(at.x, at.z))
+		shape.position = at
 		body.add_child(shape)
 
 	# Fence line just inside the invisible wall, so the boundary is legible.
@@ -404,7 +469,14 @@ func _build_forest() -> void:
 				continue
 
 			var height: float = _rng.randf_range(1.5, 2.4) + depth * 0.8
-			var transform := Transform3D(Basis.IDENTITY, Vector3(point.x, -0.2, point.y))
+			# Outside the cemetery the terrain grid has no samples, so the edge
+			# height is carried outward. Trees beyond the wall only need to not
+			# hover; they are seen as a silhouette through fog.
+			var ground: float = height_at(Vector2(
+				clampf(point.x, inner.position.x, inner.end.x),
+				clampf(point.y, inner.position.y, inner.end.y)
+			))
+			var transform := Transform3D(Basis.IDENTITY, Vector3(point.x, ground - 0.2, point.y))
 			transform = transform.rotated_local(Vector3.UP, _rng.randf_range(0.0, TAU))
 			transform = transform.scaled_local(Vector3(
 				height * _rng.randf_range(0.85, 1.05), height, height * _rng.randf_range(0.85, 1.05)
@@ -598,7 +670,7 @@ func _wall_between(body: StaticBody3D, cell: Vector2i, side: int) -> void:
 	var thickness: float = 0.9
 	box.size = Vector3(MAZE_CELL if horizontal else thickness, 5.0, thickness if horizontal else MAZE_CELL)
 	shape.shape = box
-	shape.position = Vector3(edge.x, 2.0, edge.y)
+	shape.position = Vector3(edge.x, height_at(edge) + 2.0, edge.y)
 	body.add_child(shape)
 
 
@@ -703,6 +775,83 @@ func _dress_region(region: Dictionary) -> void:
 
 	# Lightposts are the navigation aid: warm points in a dark, foggy level.
 	_scatter(rect, int(region["lights"]), ["lightpost-single", "lightpost-double"], LIGHT_SCALE, false, true)
+
+
+## Grass, stones and undergrowth across the whole cemetery.
+##
+## Separate from district dressing because it follows the ground rather than the
+## layout: it thins out on the banks where soil would not hold, thickens in the
+## hollows, and keeps off the roads. The point is that the floor stops being a
+## flat colour between the headstones.
+##
+## All of it is batched and none of it collides, so the count can be large enough
+## to actually cover the ground without costing draw calls or physics.
+func _scatter_ground_cover() -> void:
+	var half: Vector2 = ground_size * 0.5
+	var area: Rect2 = Rect2(ground_centre - half, ground_size).grow(-3.0)
+	var terrain: GraveyardTerrain = _terrain
+
+	# A jittered grid rather than random points: random scattering clumps, and
+	# clumped ground cover leaves bald patches that read as missing geometry.
+	var spacing: float = 3.4
+	var columns: int = int(area.size.x / spacing)
+	var rows: int = int(area.size.y / spacing)
+	var placed: int = 0
+
+	for column in range(columns):
+		for row in range(rows):
+			var point := Vector2(
+				area.position.x + (float(column) + _rng.randf()) / float(columns) * area.size.x,
+				area.position.y + (float(row) + _rng.randf()) / float(rows) * area.size.y
+			)
+
+			# Roads stay clear; plazas do not. Grass across an altar plaza is
+			# correct — it is bare earth that would look unfinished.
+			if _is_on_a_road(point) or _is_in_maze_walls(point):
+				continue
+
+			var steepness: float = terrain.slope_at(point) if terrain != null else 0.0
+			var region: Dictionary = region_at(Vector3(point.x, 0.0, point.y))
+			var district: StringName = region["id"] if region.has("id") else &"world"
+			_batch_group = "cover_%s" % district
+
+			var roll: float = _rng.randf()
+
+			if steepness > 0.45:
+				# Bare banks: loose stone only, and not much of it.
+				if roll < 0.25:
+					_batch(STONES[_rng.randi_range(0, STONES.size() - 1)], point, _rng.randf_range(0.0, TAU), _rng.randf_range(0.5, 1.1))
+					placed += 1
+				continue
+
+			if roll < 0.58:
+				_batch(GRASS[_rng.randi_range(0, GRASS.size() - 1)], point, _rng.randf_range(0.0, TAU), _rng.randf_range(0.7, 1.5))
+			elif roll < 0.74:
+				_batch(STONES[_rng.randi_range(0, STONES.size() - 1)], point, _rng.randf_range(0.0, TAU), _rng.randf_range(0.4, 0.9))
+			elif roll < 0.84:
+				_batch(UNDERGROWTH[_rng.randi_range(0, UNDERGROWTH.size() - 1)], point, _rng.randf_range(0.0, TAU), _rng.randf_range(0.6, 1.2))
+			elif roll < 0.88 and district == &"bonefield":
+				# The Bone Field is named for what is lying in it.
+				_batch(BONES[_rng.randi_range(0, BONES.size() - 1)], point, _rng.randf_range(0.0, TAU), _rng.randf_range(0.6, 1.0))
+			else:
+				continue
+
+			placed += 1
+
+	_batch_group = "world"
+	print("[GraveyardBuilder] Ground cover: %d pieces." % placed)
+
+
+## Whether a point lies on a road surface. Ground cover keeps off the roads but is
+## welcome everywhere else, unlike the dressing which also avoids the plazas.
+func _is_on_a_road(point: Vector2) -> bool:
+	for path: Dictionary in PATHS:
+		var points: Array = path["points"]
+		var margin: float = float(path["width"]) * ROAD_TILE * 0.5 + 0.6
+		for index in range(points.size() - 1):
+			if _distance_to_segment(point, points[index], points[index + 1]) < margin:
+				return true
+	return false
 
 
 ## Places count pieces at random points in rect, skipping clearings. Rejection
@@ -814,7 +963,7 @@ func _batch(piece: String, point: Vector2, yaw: float, extra_scale: float = 1.0)
 	if not _batches.has(key):
 		_batches[key] = []
 
-	var transform := Transform3D(Basis.IDENTITY, Vector3(point.x, 0.0, point.y))
+	var transform := Transform3D(Basis.IDENTITY, Vector3(point.x, height_at(point), point.y))
 	transform.basis = Basis(Vector3.UP, yaw).scaled(Vector3.ONE * KIT_SCALE * extra_scale)
 	(_batches[key] as Array).append(transform)
 	_placements.append({"piece": piece, "at": point})
@@ -830,7 +979,10 @@ func _flush_batches() -> void:
 
 	for key: String in _batches.keys():
 		var transforms: Array = _batches[key]
-		var piece: String = key.split("/")[1]
+		# Only the first slash separates the batch group from the piece. Splitting
+		# on every slash turns "cover_graveyard/forest/Grass_1_A" into a request for
+		# a piece called "forest".
+		var piece: String = key.substr(key.find("/") + 1)
 
 		# A kit piece is not always one mesh — a lightpost is a post and a lamp,
 		# each with its own material and its own offset inside the piece. Taking
@@ -927,8 +1079,8 @@ func _place(
 	host.add_child(node)
 	# Named after the piece rather than inheriting the glb's root name, so scenery
 	# can be identified reliably by callers and tests.
-	node.name = piece
-	node.position = Vector3(point.x, 0.0, point.y)
+	node.name = piece.replace("/", "_")
+	node.position = Vector3(point.x, height_at(point), point.y)
 	node.rotation.y = yaw
 	node.scale = Vector3.ONE * KIT_SCALE * extra_scale
 
@@ -965,7 +1117,19 @@ func _load_piece(piece: String) -> PackedScene:
 	if _scene_cache.has(piece):
 		return _scene_cache[piece]
 
-	var path: String = "%s/%s.glb" % [KIT, piece]
+	var directory: String = KIT
+	var extension: String = "glb"
+	var name: String = piece
+
+	var split: int = piece.find("/")
+	if split > 0:
+		var pack: String = piece.substr(0, split)
+		if PACKS.has(pack):
+			directory = PACKS[pack]["dir"]
+			extension = PACKS[pack]["ext"]
+			name = piece.substr(split + 1)
+
+	var path: String = "%s/%s.%s" % [directory, name, extension]
 	if not ResourceLoader.exists(path):
 		push_warning("[GraveyardBuilder] Missing kit piece: %s" % path)
 		_scene_cache[piece] = null

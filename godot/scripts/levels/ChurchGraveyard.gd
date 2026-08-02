@@ -11,6 +11,7 @@ extends Node3D
 @export var player_spawn: Vector3 = Vector3(0.0, 1.0, 40.0)
 @export var return_scene: String = "res://scenes/levels/TavernHub.tscn"
 
+@onready var graveyard_builder: GraveyardBuilder = $NavigationRegion3D/GraveyardBuilder
 @onready var navigation_region: NavigationRegion3D = $NavigationRegion3D
 @onready var altar_network: AltarNetwork = $AltarNetwork
 ## The church is parented under the navigation region so its collision is picked
@@ -24,6 +25,7 @@ var _navigation_ready: bool = false
 func _ready() -> void:
 	GameManager.change_state(GameManager.GameState.MISSION)
 
+	_settle_onto_terrain()
 	_place_player()
 	_hang_bell()
 	_bake_navigation()
@@ -32,6 +34,60 @@ func _ready() -> void:
 	church_bell.toll_finished.connect(_on_bell_finished)
 
 	MusicDirector.play_exploration()
+
+
+## Drops everything authored at ground level onto the ground.
+##
+## The cemetery used to be flat, so altars, encounter markers, patrol routes and
+## the church were all placed at y=0 and that was the ground. It is not any more.
+## Rather than write a height into every one of them by hand — which would have to
+## be redone the moment a hill moves — each is asked where the terrain is beneath
+## it and settled there. Their authored y is kept as an offset, so anything
+## deliberately raised stays raised.
+func _settle_onto_terrain() -> void:
+	if graveyard_builder == null:
+		return
+
+	var settled: int = 0
+	for node in _nodes_to_settle():
+		var here := Vector2(node.global_position.x, node.global_position.z)
+		node.global_position.y += graveyard_builder.height_at(here)
+		settled += 1
+
+	# The church is built by its own script around its origin, so moving the
+	# origin carries the whole building, tower and all.
+	if church != null:
+		var at := Vector2(church.global_position.x, church.global_position.z)
+		church.global_position.y += graveyard_builder.height_at(at)
+
+	print("[ChurchGraveyard] Settled %d markers onto the terrain." % settled)
+
+
+## Everything placed in the scene that belongs on the ground. Patrol route points
+## are included: a route at a fixed height sends enemies walking into a hillside
+## or through the air above a hollow.
+func _nodes_to_settle() -> Array[Node3D]:
+	var found: Array[Node3D] = []
+
+	for group: StringName in [&"funeral_altars", &"encounters", &"patrols"]:
+		for node in get_tree().get_nodes_in_group(group):
+			var spatial := node as Node3D
+			if spatial == null:
+				continue
+			found.append(spatial)
+			for child in spatial.get_children():
+				var marker := child as Marker3D
+				if marker != null:
+					found.append(marker)
+
+	var spawn_points: Node = get_node_or_null("SpawnPoints")
+	if spawn_points != null:
+		for child in spawn_points.get_children():
+			var marker := child as Node3D
+			if marker != null:
+				found.append(marker)
+
+	return found
 
 
 ## Puts the bell where the tower actually ends up, rather than at a hard-coded
@@ -85,7 +141,11 @@ func _place_player() -> void:
 			player.global_position = marker.global_position
 			return
 
-	player.global_position = player_spawn
+	player.global_position = Vector3(
+		player_spawn.x,
+		graveyard_builder.height_at(Vector2(player_spawn.x, player_spawn.z)) + player_spawn.y,
+		player_spawn.z
+	)
 
 
 func _on_altar_cleansed(_altar_id: StringName, cleansed: int, total: int) -> void:
