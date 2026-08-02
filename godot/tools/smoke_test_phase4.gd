@@ -202,9 +202,17 @@ func _test_combat_state() -> void:
 	# never actually disengages.
 	enemy.queue_free()
 	await process_frame
+
+	# Polled rather than slept on. The tracker counts in game frames while a timer
+	# counts wall clock, so on a heavy frame the polls fall behind the clock and a
+	# fixed wait reports a failure that is really just a slow machine.
 	var delay: float = float(tracker.get("disengage_delay"))
-	var timer: SceneTreeTimer = create_timer(delay + 1.0, true, false, true)
-	await timer.timeout
+	var deadline: SceneTreeTimer = create_timer(delay * 3.0 + 3.0, true, false, true)
+	var expired: Array[bool] = [false]
+	deadline.timeout.connect(func() -> void: expired[0] = true)
+	while ended[0] < 1 and not expired[0]:
+		await process_frame
+
 	_check(ended[0] >= 1, "combat ends once enemies leave")
 
 	_bus.combat_started.disconnect(start_handler)
