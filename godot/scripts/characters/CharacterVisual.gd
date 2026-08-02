@@ -18,6 +18,15 @@ extends Node3D
 ## Optional. Leave empty to search this subtree for an AnimationPlayer.
 @export var animation_player_path: NodePath
 
+## Yaw correction for the model, in degrees. Godot's forward is -Z, but packs are
+## authored facing either way and it varies between vendors — assume nothing and
+## check each model.
+##
+## This is a named property rather than a rotation baked into the model's
+## transform because a transform matrix hides the intent: the correction reads as
+## an accident and gets "tidied away", which is exactly how this went wrong twice.
+@export_range(-180.0, 180.0, 90.0) var model_yaw_degrees: float = 0.0
+
 @export_group("Animation names")
 @export var idle_animation: StringName = &"Idle"
 @export var run_animation: StringName = &"Running"
@@ -54,10 +63,23 @@ var _locked: bool = false
 
 
 func _ready() -> void:
+	_apply_model_yaw()
 	_animation_player = _resolve_animation_player()
 	_mesh = _resolve_procedural_mesh()
 	if _mesh != null:
 		_mesh_rest_scale = _mesh.scale
+
+
+## Turns the model itself, leaving this node's own rotation free for the facing
+## code that drives it every frame.
+func _apply_model_yaw() -> void:
+	if is_zero_approx(model_yaw_degrees):
+		return
+
+	for child in get_children():
+		var model := child as Node3D
+		if model != null:
+			model.rotate_y(deg_to_rad(model_yaw_degrees))
 
 
 func has_animations() -> bool:
