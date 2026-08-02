@@ -31,6 +31,7 @@ func _initialize() -> void:
 	print("\n=== Phase 1 smoke test ===\n")
 	_test_input_map()
 	_test_audio_buses()
+	_test_sound_resolution()
 	_test_autoloads()
 	await _test_pause_suspension()
 	_test_settings_round_trip()
@@ -61,6 +62,52 @@ func _test_input_map() -> void:
 			if event.device != -1:
 				all_any_device = false
 		_check(all_any_device, "action '%s' binds to any device" % action)
+
+
+## Sounds arrive one file at a time, in whatever format they were produced in, and
+## a sound that cannot be found is silent rather than loud — the exact failure the
+## player is least likely to report and the developer least likely to notice.
+func _test_sound_resolution() -> void:
+	var audio: Node = root.get_node_or_null("AudioManager")
+	if not _check(audio != null, "AudioManager available"):
+		return
+
+	# The lute impact is declared as wanting three variations but only the first
+	# has been delivered, and it is a .wav rather than the .ogg the spec asks for.
+	# Both fallbacks have to hold or the most-heard sound in the game is missing.
+	var path: String = String(audio.call("_resolve_path", &"riff_strike_impact"))
+	_check(
+		ResourceLoader.exists(path),
+		"the lute impact resolves to a file that exists (%s)" % path.get_file()
+	)
+
+	# Asked repeatedly, because the variation is chosen at random: picking the two
+	# undelivered ones must still fall back rather than returning a dead path.
+	var misses: int = 0
+	for i in range(40):
+		if not ResourceLoader.exists(String(audio.call("_resolve_path", &"riff_strike_impact"))):
+			misses += 1
+	_check(misses == 0, "it resolves on every roll of the variation dice (%d misses in 40)" % misses)
+
+	# A sound with no variations and no file must still report a sensible path
+	# rather than crash or resolve to something unrelated.
+	var absent: String = String(audio.call("_resolve_path", &"definitely_not_a_real_sound"))
+	_check(
+		not ResourceLoader.exists(absent) and absent.contains("definitely_not_a_real_sound"),
+		"a missing sound reports its own name"
+	)
+
+	# Repeated sounds are pitched, one-shots are not.
+	var pitched: bool = false
+	for i in range(40):
+		if not is_equal_approx(float(audio.call("_pitch_for", &"riff_strike_impact")), 1.0):
+			pitched = true
+			break
+	_check(pitched, "repeated hits are pitch-varied so they do not machine-gun")
+	_check(
+		is_equal_approx(float(audio.call("_pitch_for", &"ui_back")), 1.0),
+		"one-shot and UI sounds are left at their authored pitch"
+	)
 
 
 func _test_audio_buses() -> void:

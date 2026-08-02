@@ -135,6 +135,7 @@ Named exactly as listed. Mono is fine for all SFX; the engine positions them in 
 |---|---|
 | `riff_strike_swing_01/02/03.ogg` | Three variations, heavy wooden whoosh. |
 | `riff_strike_impact_01/02/03.ogg` | Lute-bludgeon connecting. Wood + metal + a struck string. |
+| ~~`riff_strike_impact`~~ | **Delivered** (1 of 3 variations). A struck open-E chord, cut to 0.5s. Two more variations would help — the pitch jitter covers a single sample, but the ear finds the pattern in one sample faster than in three. |
 | `riff_sing_blast.ogg` | The vocal wave. |
 | `choirmaster_conduct.ogg` | The Choirmaster turning to the great altar and raising his hands. The cue that he has become untouchable, so it must be unmistakable over a fight already in progress. Three times per fight. |
 | `choirmaster_summon.ogg` | One of the dead clawing its way up. Played per summon, up to eight in a wave, so it needs to stack without turning to mud. |

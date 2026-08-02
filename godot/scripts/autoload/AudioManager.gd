@@ -26,7 +26,19 @@ const POOL_SIZE_3D: int = 24
 
 ## Sounds with numbered variations, chosen at random per playback to avoid the
 ## machine-gun effect on repeated hits. Value is the number of files, named
-## "<id>_01.ogg" .. "<id>_NN.ogg". Anything not listed resolves to "<id>.ogg".
+## "<id>_01" .. "<id>_NN". Anything not listed resolves to "<id>".
+##
+## The count is what the sound *wants*, not what has been delivered. Missing
+## variations fall back to whichever exist, so a single file works from the day it
+## arrives and the rest can be added later without touching code.
+## How far a repeated sound may be pitched either side of normal.
+##
+## Applied only to sounds listed in VARIATIONS, which are exactly the ones that
+## fire in quick succession. It is what stops one delivered sample from sounding
+## like a machine gun before its siblings exist — and it still helps once they do,
+## since three files cycling is a pattern the ear picks up quickly.
+const PITCH_JITTER: float = 0.07
+
 const VARIATIONS: Dictionary = {
 	&"riff_strike_swing": 3,
 	&"riff_strike_impact": 3,
@@ -72,6 +84,9 @@ func play_sfx(sfx_id: StringName, bus: StringName = BUS_SFX_PLAYER, volume_db: f
 	player.stream = stream
 	player.bus = bus
 	player.volume_db = volume_db
+	# Reset explicitly: players are pooled and reused, so a pitch left over from a
+	# previous sound would otherwise detune whatever borrows the voice next.
+	player.pitch_scale = _pitch_for(sfx_id)
 	player.play()
 
 
@@ -90,6 +105,7 @@ func play_sfx_3d(sfx_id: StringName, position: Vector3, bus: StringName = BUS_SF
 	player.stream = stream
 	player.bus = bus
 	player.volume_db = volume_db
+	player.pitch_scale = _pitch_for(sfx_id)
 	player.global_position = position
 	player.play()
 
@@ -182,11 +198,39 @@ func _resolve_stream(sfx_id: StringName) -> AudioStream:
 	return stream
 
 
+func _pitch_for(sfx_id: StringName) -> float:
+	if not VARIATIONS.has(sfx_id):
+		return 1.0
+	return randf_range(1.0 - PITCH_JITTER, 1.0 + PITCH_JITTER)
+
+
+## The file to play for a sound id.
+##
+## Tries the randomly chosen variation first, then the others, then the bare name;
+## and .ogg before .wav at each step. Both fallbacks exist for the same reason:
+## audio arrives one file at a time and in whatever format it was produced in, and
+## the game should play what it has rather than nothing.
 func _resolve_path(sfx_id: StringName) -> String:
+	var names: Array[String] = []
+
 	if VARIATIONS.has(sfx_id):
-		var count: int = int(VARIATIONS[sfx_id])
-		var pick: int = randi_range(1, maxi(1, count))
-		return "%s/%s_%02d.ogg" % [SFX_DIRECTORY, sfx_id, pick]
+		var count: int = maxi(1, int(VARIATIONS[sfx_id]))
+		var pick: int = randi_range(1, count)
+		names.append("%s_%02d" % [sfx_id, pick])
+		for index in range(1, count + 1):
+			if index != pick:
+				names.append("%s_%02d" % [sfx_id, index])
+
+	names.append(String(sfx_id))
+
+	for name: String in names:
+		for extension: String in ["ogg", "wav"]:
+			var path: String = "%s/%s.%s" % [SFX_DIRECTORY, name, extension]
+			if ResourceLoader.exists(path):
+				return path
+
+	# Nothing found. Returned so the miss is reported against a name that means
+	# something rather than against whichever variation the dice picked.
 	return "%s/%s.ogg" % [SFX_DIRECTORY, sfx_id]
 
 
