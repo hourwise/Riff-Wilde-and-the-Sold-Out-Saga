@@ -35,6 +35,7 @@ run_animation = &"SkeletonArmature|Skeleton_Running"
 attack_animations = Array[StringName]([&"SkeletonArmature|Skeleton_Attack"])
 death_animation = &"SkeletonArmature|Skeleton_Death"
 run_speed_scale = 0.65
+model_yaw_degrees = 180.0
 procedural_mesh_path = NodePath(".")
 
 [node name="Model" parent="CharacterVisual" instance=ExtResource("7_model")]

@@ -20,6 +20,15 @@ const KIT: String = "res://assets/environment/graveyard-kit"
 const KIT_SCALE: float = 2.0
 const GRID: float = 2.0
 
+## Per-category size, as a multiplier on KIT_SCALE. Derived from the measured
+## heights reported by tools/measure_scene_scale.gd against a ~2 m character:
+## a headstone should reach the chest, a crypt should tower, a tree should
+## dominate. A single uniform factor gets all three wrong at once.
+const GRAVE_SCALE: float = 0.65
+const CRYPT_SCALE: float = 1.8
+const TREE_SCALE: float = 1.15
+const LIGHT_SCALE: float = 1.05
+
 ## Fixed so the graveyard is identical every run. A level that reshuffles itself
 ## cannot be learned, play-tested or bug-reported against.
 const LAYOUT_SEED: int = 20260801
@@ -199,7 +208,7 @@ func _line_of_pieces(piece: String, from: Vector2, to: Vector2, yaw_degrees: flo
 
 	for step in range(steps + 1):
 		var point: Vector2 = start.lerp(end, float(step) / float(steps))
-		_place(piece, point, deg_to_rad(yaw_degrees))
+		_place(piece, point, deg_to_rad(yaw_degrees), 0.75)
 
 
 # ── Paths ────────────────────────────────────────────────────────
@@ -227,16 +236,24 @@ func _build_paths() -> void:
 func _dress_region(region: Dictionary) -> void:
 	var rect: Rect2 = region["rect"]
 
+	# Chest height. At the kit's default scale a headstone stood as tall as Riff,
+	# which flattens the whole sense of size.
 	_scatter(rect, int(region["graves"]), [
 		"gravestone-cross", "gravestone-bevel", "gravestone-round",
 		"gravestone-wide", "gravestone-broken", "gravestone-decorative", "grave",
-	], 1.0)
+	], GRAVE_SCALE)
 
-	_scatter(rect, int(region["crypts"]), ["crypt", "crypt-large", "crypt-small"], 1.0, true)
-	_scatter(rect, int(region["trees"]), ["pine", "pine-crooked", "pine-fall", "trunk"], 1.0)
+	# Crypts are buildings and must read as such — you should feel small beside
+	# one, and be unable to see over it.
+	_scatter(rect, int(region["crypts"]), ["crypt", "crypt-large", "crypt-small"], CRYPT_SCALE, true)
+
+	# "trunk" is a felled stump, not a tree; mixing it in made a quarter of the
+	# woodland shorter than the player.
+	_scatter(rect, int(region["trees"]), ["pine", "pine-crooked", "pine-fall"], TREE_SCALE)
+	_scatter(rect, int(region["trees"]) / 3, ["trunk", "rocks", "rocks-tall"], GRAVE_SCALE)
 
 	# Lightposts are the navigation aid: warm points in a dark, foggy level.
-	_scatter(rect, int(region["lights"]), ["lightpost-single", "lightpost-double"], 1.0, false, true)
+	_scatter(rect, int(region["lights"]), ["lightpost-single", "lightpost-double"], LIGHT_SCALE, false, true)
 
 
 ## Places count pieces at random points in rect, skipping clearings. Rejection
@@ -267,7 +284,9 @@ func _scatter(
 
 		var piece: String = pieces[_rng.randi_range(0, pieces.size() - 1)]
 		var yaw: float = _rng.randf_range(0.0, TAU)
-		var piece_scale: float = _rng.randf_range(2.0 - scale_jitter * 0.25, 2.0 + scale_jitter * 0.25) / KIT_SCALE
+		# scale_jitter is the category multiplier; vary it slightly so a field of
+		# headstones is not visibly cloned.
+		var piece_scale: float = scale_jitter * _rng.randf_range(0.88, 1.12)
 		var node: Node3D = _place(piece, point, yaw, piece_scale, blocks_navigation)
 		placed += 1
 

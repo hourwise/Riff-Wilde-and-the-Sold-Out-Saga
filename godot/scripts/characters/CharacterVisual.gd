@@ -60,6 +60,9 @@ var _mesh: Node3D = null
 var _mesh_rest_scale: Vector3 = Vector3.ONE
 var _procedural_tween: Tween = null
 var _locked: bool = false
+## Clip currently playing as a one-shot (attack, hit, dodge). Locomotion must not
+## override it, or the clip is replaced on the very next frame and never seen.
+var _one_shot_clip: StringName = &""
 
 
 func _ready() -> void:
@@ -68,6 +71,9 @@ func _ready() -> void:
 	_mesh = _resolve_procedural_mesh()
 	if _mesh != null:
 		_mesh_rest_scale = _mesh.scale
+
+	if _animation_player != null:
+		_animation_player.animation_finished.connect(_on_animation_finished)
 
 
 ## Turns the model itself, leaving this node's own rotation free for the facing
@@ -117,8 +123,10 @@ func get_missing_clips() -> Array[StringName]:
 
 ## speed_ratio is current speed divided by maximum speed, 0..1.
 func play_locomotion(speed_ratio: float) -> void:
-	# Death and one-shot reactions own the visual until they finish.
-	if _locked:
+	# Death and one-shot reactions own the visual until they finish. Without this
+	# guard, locomotion runs every frame and replaces an attack or hit clip
+	# immediately after it starts, so the swing is never actually seen.
+	if _locked or _one_shot_clip != &"":
 		return
 
 	if _animation_player == null:
@@ -148,9 +156,7 @@ func play_locomotion(speed_ratio: float) -> void:
 func play_attack(step_index: int) -> void:
 	if _animation_player != null and not attack_animations.is_empty():
 		var clip: StringName = attack_animations[step_index % attack_animations.size()]
-		if _has_clip(clip):
-			_animation_player.speed_scale = 1.0
-			_animation_player.play(String(clip), blend_seconds)
+		if _play_one_shot(clip):
 			return
 
 	_procedural_pulse(attack_squash, 0.06, 0.16)
@@ -187,6 +193,7 @@ func play_death() -> void:
 ## Returns a character to its neutral state, e.g. on respawn.
 func reset() -> void:
 	_locked = false
+	_one_shot_clip = &""
 	_kill_procedural_tween()
 
 	if _mesh != null:
@@ -200,13 +207,21 @@ func reset() -> void:
 
 # ── Internals ────────────────────────────────────────────────────
 
+## Plays a clip that owns the character until it finishes. A newer one-shot
+## replaces an older one, so a combo chain flows rather than blocking itself.
 func _play_one_shot(clip: StringName) -> bool:
 	if _animation_player == null or clip == &"" or not _has_clip(clip):
 		return false
 
+	_one_shot_clip = clip
 	_animation_player.speed_scale = 1.0
 	_animation_player.play(String(clip), blend_seconds)
 	return true
+
+
+func _on_animation_finished(finished: StringName) -> void:
+	if finished == _one_shot_clip:
+		_one_shot_clip = &""
 
 
 func _has_clip(clip: StringName) -> bool:
