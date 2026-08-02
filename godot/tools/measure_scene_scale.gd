@@ -73,12 +73,30 @@ func _report(label: String, path: String, extra_scale: float) -> void:
 	await process_frame
 
 
-## Uses the rendered AABB of every visible mesh, which accounts for skinning and
-## for the scale applied in the scene, unlike a raw mesh resource's bounds.
+## Height of what is actually on screen.
+##
+## For rigged characters this uses the POSED SKELETON, not mesh bounds. A skinned
+## mesh reports its bind-pose AABB, which on several of these packs is degenerate
+## and does not respond to scale at all — it silently returns the same number
+## whatever the model is scaled to. Bone poses are the only reliable measure.
+##
+## Bones sit inside the silhouette, so a character's real height is a little more
+## than reported; hair and helmets are not counted.
 func _visible_height(node: Node) -> float:
+	var skeleton: Skeleton3D = _find(node, "Skeleton3D") as Skeleton3D
+	if skeleton != null and skeleton.get_bone_count() > 0:
+		var lowest: float = INF
+		var highest: float = -INF
+		for i in range(skeleton.get_bone_count()):
+			var y: float = (skeleton.global_transform * skeleton.get_bone_global_pose(i)).origin.y
+			lowest = minf(lowest, y)
+			highest = maxf(highest, y)
+		if not is_inf(lowest):
+			return highest - lowest
+
+	# Static scenery has no skeleton; mesh bounds are trustworthy there.
 	var low: float = INF
 	var high: float = -INF
-
 	for found in _find_all(node, "VisualInstance3D"):
 		var visual := found as VisualInstance3D
 		var box: AABB = visual.global_transform * visual.get_aabb()

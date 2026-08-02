@@ -1,4 +1,4 @@
-[gd_scene load_steps=26 format=3 uid="uid://b1c2d3e4f5a6"]
+[gd_scene load_steps=33 format=3 uid="uid://b1c2d3e4f5a6"]
 
 [ext_resource type="Script" path="res://scripts/player/PlayerController.gd" id="1_controller"]
 [ext_resource type="Script" path="res://scripts/player/PlayerStateMachine.gd" id="2_state_machine"]
@@ -13,12 +13,22 @@
 [ext_resource type="Script" path="res://scripts/player/EncoreMeter.gd" id="11_encore"]
 [ext_resource type="Script" path="res://scripts/player/CompanionSummoner.gd" id="12_summoner"]
 [ext_resource type="Script" path="res://scripts/combat/CombatStateTracker.gd" id="13_combat_state"]
-[ext_resource type="PackedScene" path="res://assets/kaykit/adventurers/Characters/gltf/Barbarian.glb" id="14_body"]
+[ext_resource type="PackedScene" path="res://assets/characters/riff/riff_wilde.glb" id="14_body"]
 [ext_resource type="PackedScene" path="res://assets/kaykit/animations/Animations/gltf/Rig_Medium/Rig_Medium_General.glb" id="17_lib_general"]
 [ext_resource type="PackedScene" path="res://assets/kaykit/animations/Animations/gltf/Rig_Medium/Rig_Medium_MovementBasic.glb" id="18_lib_move"]
 [ext_resource type="PackedScene" path="res://assets/kaykit/animations/Animations/gltf/Rig_Medium/Rig_Medium_CombatMelee.glb" id="19_lib_melee"]
 [ext_resource type="Script" path="res://scripts/player/HealthRegen.gd" id="16_regen"]
 [ext_resource type="PackedScene" path="res://assets/weapons/lute_bludgeon.glb" id="20_lute"]
+[ext_resource type="PackedScene" path="res://assets/characters/riff/animations/Idle_9.glb" id="21_idle"]
+[ext_resource type="PackedScene" path="res://assets/characters/riff/animations/running.glb" id="22_run"]
+[ext_resource type="PackedScene" path="res://assets/characters/riff/animations/Proud_Strut.glb" id="23_walk"]
+[ext_resource type="PackedScene" path="res://assets/characters/riff/animations/Right_Hand_Sword_Slash.glb" id="24_atk1"]
+[ext_resource type="PackedScene" path="res://assets/characters/riff/animations/Left_Slash.glb" id="25_atk2"]
+[ext_resource type="PackedScene" path="res://assets/characters/riff/animations/Double_Combo_Attack.glb" id="26_atk3"]
+[ext_resource type="PackedScene" path="res://assets/characters/riff/animations/Hit_Reaction_to_Waist.glb" id="27_hit"]
+[ext_resource type="PackedScene" path="res://assets/characters/riff/animations/dying_backwards.glb" id="28_death"]
+[ext_resource type="PackedScene" path="res://assets/characters/riff/animations/Regular_Jump.glb" id="29_dodge"]
+[ext_resource type="PackedScene" path="res://assets/characters/riff/animations/Gentlemans_Bow.glb" id="30_bow"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
 radius = 0.5
@@ -63,17 +73,17 @@ shape = SubResource("CapsuleShape3D_player")
 [node name="MeshInstance3D" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 
-; Placeholder body until Riff's own model is finished. Animation names come from
-; the pack; swapping the model means changing them and nothing else.
+; Riff's own model and his own 20-clip animation set, on his own rig. The clip
+; names are the glTF track names verbatim.
 [node name="CharacterVisual" type="Node3D" parent="MeshInstance3D"]
 script = ExtResource("10_character_visual")
-animation_libraries = Array[PackedScene]([ExtResource("17_lib_general"), ExtResource("18_lib_move"), ExtResource("19_lib_melee")])
-idle_animation = &"Idle_A"
-run_animation = &"Running_A"
-attack_animations = Array[StringName]([&"Melee_2H_Attack_Chop", &"Melee_2H_Attack_Slice", &"Melee_2H_Attack_Spin"])
-hit_animation = &"Hit_A"
-death_animation = &"Death_A"
-dodge_animation = &"Jump_Full_Short"
+animation_libraries = Array[PackedScene]([ExtResource("21_idle"), ExtResource("22_run"), ExtResource("23_walk"), ExtResource("24_atk1"), ExtResource("25_atk2"), ExtResource("26_atk3"), ExtResource("27_hit"), ExtResource("28_death"), ExtResource("29_dodge"), ExtResource("30_bow")])
+idle_animation = &"Armature|Idle_9|baselayer"
+run_animation = &"Armature|running|baselayer"
+attack_animations = Array[StringName]([&"Armature|Right_Hand_Sword_Slash|baselayer", &"Armature|Left_Slash|baselayer", &"Armature|Double_Combo_Attack|baselayer"])
+hit_animation = &"Armature|Hit_Reaction_to_Waist|baselayer"
+death_animation = &"Armature|dying_backwards|baselayer"
+dodge_animation = &"Armature|Regular_Jump|baselayer"
 model_yaw_degrees = 180.0
 run_speed_scale = 1.0
 procedural_mesh_path = NodePath(".")
@@ -81,7 +91,7 @@ procedural_mesh_path = NodePath(".")
 ; Scale and ground offset only. Facing is CharacterVisual.model_yaw_degrees, so
 ; the correction is visible and named rather than hidden in this matrix.
 [node name="Body" parent="MeshInstance3D/CharacterVisual" instance=ExtResource("14_body")]
-transform = Transform3D(0.92, 0, 0, 0, 0.92, 0, 0, 0, 0.92, 0, -1, 0)
+transform = Transform3D(0.76, 0, 0, 0, 0.76, 0, 0, 0, 0.76, 0, -1, 0)
 
 [node name="LuteWeapon" type="Node3D" parent="MeshInstance3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, 0.2, -0.4)
@@ -153,11 +163,10 @@ script = ExtResource("13_combat_state")
 [node name="HealthRegen" type="Node" parent="."]
 script = ExtResource("16_regen")
 
-[node name="WeaponSocket" type="BoneAttachment3D" parent="MeshInstance3D/CharacterVisual/Body/Rig_Medium/Skeleton3D" index="0"]
-bone_name = "handslot.r"
-bone_idx = 8
+[node name="WeaponSocket" type="BoneAttachment3D" parent="MeshInstance3D/CharacterVisual/Body/Armature/Skeleton3D" index="0"]
+bone_name = "RightHand"
 
 ; The model is authored lying along X with its origin at the centre of the body,
 ; so it is rotated upright and offset until the grip sits in the hand.
-[node name="Lute" parent="MeshInstance3D/CharacterVisual/Body/Rig_Medium/Skeleton3D/WeaponSocket" instance=ExtResource("20_lute")]
+[node name="Lute" parent="MeshInstance3D/CharacterVisual/Body/Armature/Skeleton3D/WeaponSocket" instance=ExtResource("20_lute")]
 transform = Transform3D(0, -1.5, 0, 1.5, 0, 0, 0, 0, 1.5, 0, 0.42, 0)

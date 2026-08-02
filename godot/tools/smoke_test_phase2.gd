@@ -31,7 +31,7 @@ func _initialize() -> void:
 		quit(1)
 		return
 
-	_test_player_visual(player)
+	await _test_player_visual(player)
 	_test_attack_chain(player)
 	_test_dodge_iframes(player)
 	await _test_camera_framing(player)
@@ -72,6 +72,61 @@ func _test_player_visual(player: Node3D) -> void:
 	var forward: Vector3 = _measure_facing(player)
 	if forward != Vector3.ZERO:
 		_check(forward.z < 0.0, "player model faces forward, not backwards")
+
+	await _check_clips_move_bones(player, visual)
+
+
+## Clips that exist and play, but move nothing.
+##
+## Riff's animations ship as separate files from his model. When they are exported
+## without the skin, Godot builds them as plain node chains instead of a skeleton,
+## so every track addresses a path the character does not have. The clip list still
+## resolves, playback still reports success, and the character stands in his bind
+## pose — passing every other check here. So this asserts the bones actually move.
+func _check_clips_move_bones(player: Node3D, visual: Node) -> void:
+	var skeleton: Skeleton3D = _find_node(player, "Skeleton3D") as Skeleton3D
+	if not _check(skeleton != null, "player has a skeleton to animate"):
+		return
+
+	var sampled: int = 0
+	var frozen: Array[String] = []
+
+	for clip: StringName in [
+		StringName(visual.get("idle_animation")),
+		StringName(visual.get("run_animation")),
+		StringName(visual.get("hit_animation")),
+		StringName(visual.get("death_animation")),
+	]:
+		if clip == &"":
+			continue
+
+		var before: Array[Transform3D] = _bone_poses(skeleton)
+		visual.call("_play_one_shot", clip)
+		for i in range(12):
+			await process_frame
+		var after: Array[Transform3D] = _bone_poses(skeleton)
+
+		sampled += 1
+		var moved: bool = false
+		for i in range(before.size()):
+			if not before[i].is_equal_approx(after[i]):
+				moved = true
+				break
+		if not moved:
+			frozen.append(String(clip))
+
+	visual.call("reset")
+	_check(
+		sampled > 0 and frozen.is_empty(),
+		"player clips actually move the skeleton%s" % ("" if frozen.is_empty() else " (frozen: %s)" % str(frozen))
+	)
+
+
+func _bone_poses(skeleton: Skeleton3D) -> Array[Transform3D]:
+	var poses: Array[Transform3D] = []
+	for i in range(skeleton.get_bone_count()):
+		poses.append(skeleton.get_bone_global_pose(i))
+	return poses
 
 
 ## Which way a character actually faces, from its own skeleton.
