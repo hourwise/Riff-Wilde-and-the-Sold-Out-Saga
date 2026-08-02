@@ -43,9 +43,17 @@ var _current_step: AttackStep = null
 @onready var sing_controller: SingController = get_node("../SingController")
 
 
+## True when the player's model plays its own attack clips, in which case the
+## procedural weapon arc is suppressed.
+var _animation_drives_weapon: bool = false
+
+
 func _ready() -> void:
 	if chain.is_empty():
 		chain = _build_default_chain()
+
+	if player.visual != null:
+		_animation_drives_weapon = player.visual.has_attack_animations()
 
 	if hitbox:
 		hitbox.attacker = player
@@ -193,6 +201,11 @@ func _abort() -> void:
 ## in lockstep with the hitbox and survives cancels.
 func _update_swing() -> void:
 	if weapon_mesh == null or _current_step == null:
+		return
+
+	# When the character model animates its own weapon, this arc would be a second
+	# swing fighting the first. The pivot then serves only to carry the hitbox.
+	if _animation_drives_weapon:
 		return
 
 	var from: float = deg_to_rad(_current_step.swing_from_degrees)

@@ -64,6 +64,15 @@ func has_animations() -> bool:
 	return _animation_player != null
 
 
+## True when the model animates its own attacks. Callers use this to stand down
+## any procedural stand-in, so a swing is not driven twice.
+func has_attack_animations() -> bool:
+	for clip: StringName in attack_animations:
+		if _has_clip(clip):
+			return true
+	return false
+
+
 ## Configured clip names that the model does not actually contain.
 ##
 ## A misspelled or renamed clip fails silently — playback is simply skipped and

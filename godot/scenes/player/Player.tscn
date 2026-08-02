@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=3 uid="uid://b1c2d3e4f5a6"]
+[gd_scene load_steps=22 format=3 uid="uid://b1c2d3e4f5a6"]
 
 [ext_resource type="Script" path="res://scripts/player/PlayerController.gd" id="1_controller"]
 [ext_resource type="Script" path="res://scripts/player/PlayerStateMachine.gd" id="2_state_machine"]
@@ -13,8 +13,7 @@
 [ext_resource type="Script" path="res://scripts/player/EncoreMeter.gd" id="11_encore"]
 [ext_resource type="Script" path="res://scripts/player/CompanionSummoner.gd" id="12_summoner"]
 [ext_resource type="Script" path="res://scripts/combat/CombatStateTracker.gd" id="13_combat_state"]
-[ext_resource type="PackedScene" path="res://Models/GLB format/character-soldier.glb" id="14_body"]
-[ext_resource type="PackedScene" path="res://Models/GLB format/weapon-spear.glb" id="15_weapon"]
+[ext_resource type="PackedScene" path="res://assets/characters/rpg-characters/Warrior.gltf" id="14_body"]
 [ext_resource type="Script" path="res://scripts/player/HealthRegen.gd" id="16_regen"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
@@ -64,27 +63,28 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 ; the pack; swapping the model means changing them and nothing else.
 [node name="CharacterVisual" type="Node3D" parent="MeshInstance3D"]
 script = ExtResource("10_character_visual")
-idle_animation = &"idle"
-run_animation = &"sprint"
-attack_animations = Array[StringName]([&"attack-melee-right", &"attack-melee-left", &"attack-melee-right"])
-death_animation = &"die"
-run_speed_scale = 1.15
+idle_animation = &"Idle"
+run_animation = &"Run"
+attack_animations = Array[StringName]([&"Sword_Attack", &"Sword_Attack2", &"Sword_Attack"])
+hit_animation = &"RecieveHit"
+death_animation = &"Death"
+dodge_animation = &"Roll"
+run_speed_scale = 1.0
 procedural_mesh_path = NodePath(".")
 
-; Yawed 180 degrees: this model is authored facing +Z, while Godot's forward and
-; all the facing code here are -Z. Do not "tidy" this away without checking which
-; way the replacement model faces.
+; No yaw correction: this model already faces -Z, Godot's forward. It also carries
+; its own weapon on a Weapon.R bone, so the swing is animated rather than driven
+; by the procedural arc.
 [node name="Body" parent="MeshInstance3D/CharacterVisual" instance=ExtResource("14_body")]
-transform = Transform3D(-3, 0, 0, 0, 3, 0, 0, 0, -3, 0, -1, 0)
+transform = Transform3D(0.95, 0, 0, 0, 0.95, 0, 0, 0, 0.95, 0, -1, 0)
 
 [node name="LuteWeapon" type="Node3D" parent="MeshInstance3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, 0.2, -0.4)
 
+; Kept as the hitbox anchor and swing pivot. It draws nothing now: the character
+; model carries and animates the real weapon.
 [node name="MeshInstance3D" type="MeshInstance3D" parent="MeshInstance3D/LuteWeapon"]
 transform = Transform3D(1, 0, 0, 0, 0.866025, 0.5, 0, -0.5, 0.866025, 0, 0.4, 0)
-
-[node name="Weapon" parent="MeshInstance3D/LuteWeapon/MeshInstance3D" instance=ExtResource("15_weapon")]
-transform = Transform3D(2.6, 0, 0, 0, 2.6, 0, 0, 0, 2.6, 0, -0.9, 0)
 
 [node name="Hitbox" type="Area3D" parent="MeshInstance3D/LuteWeapon"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.4, 0, -0.8)

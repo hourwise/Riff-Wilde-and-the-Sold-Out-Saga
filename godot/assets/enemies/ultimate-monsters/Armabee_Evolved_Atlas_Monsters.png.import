@@ -2,21 +2,23 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://duk7yhdrljpnh"
-path.s3tc="res://.godot/imported/colormap.png-fb38a4dfb1e239c054b77cc3e4bfedf4.s3tc.ctex"
+uid="uid://dc7cpeis1aodl"
+path="res://.godot/imported/Armabee_Evolved_Atlas_Monsters.png-8153cbce15c3a651e5bc48ba7f8a28e7.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
-"vram_texture": true
+"vram_texture": false
+}
+generator_parameters={
+"md5": "19edfe03ec2ac473b0a20d5684c8b79c"
 }
 
 [deps]
 
-source_file="res://assets/environment/graveyard-kit/Textures/colormap.png"
-dest_files=["res://.godot/imported/colormap.png-fb38a4dfb1e239c054b77cc3e4bfedf4.s3tc.ctex"]
+source_file="res://assets/enemies/ultimate-monsters/Armabee_Evolved_Atlas_Monsters.png"
+dest_files=["res://.godot/imported/Armabee_Evolved_Atlas_Monsters.png-8153cbce15c3a651e5bc48ba7f8a28e7.ctex"]
 
 [params]
 
-compress/mode=2
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -38,4 +40,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=0
+detect_3d/compress_to=1

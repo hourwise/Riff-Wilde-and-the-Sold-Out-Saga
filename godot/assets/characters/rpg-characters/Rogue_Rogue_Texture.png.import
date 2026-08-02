@@ -2,21 +2,23 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://duk7yhdrljpnh"
-path.s3tc="res://.godot/imported/colormap.png-fb38a4dfb1e239c054b77cc3e4bfedf4.s3tc.ctex"
+uid="uid://bf7bi75l76mel"
+path="res://.godot/imported/Rogue_Rogue_Texture.png-5d4308adfc8578586566cee221027786.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
-"vram_texture": true
+"vram_texture": false
+}
+generator_parameters={
+"md5": "3d899c20ef93607b29d47383ae06cae8"
 }
 
 [deps]
 
-source_file="res://assets/environment/graveyard-kit/Textures/colormap.png"
-dest_files=["res://.godot/imported/colormap.png-fb38a4dfb1e239c054b77cc3e4bfedf4.s3tc.ctex"]
+source_file="res://assets/characters/rpg-characters/Rogue_Rogue_Texture.png"
+dest_files=["res://.godot/imported/Rogue_Rogue_Texture.png-5d4308adfc8578586566cee221027786.ctex"]
 
 [params]
 
-compress/mode=2
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -38,4 +40,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=0
+detect_3d/compress_to=1
