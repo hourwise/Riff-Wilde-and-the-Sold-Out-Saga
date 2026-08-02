@@ -14,6 +14,14 @@ extends Node
 @export_group("Obstacle avoidance")
 @export var obstacle_avoid_distance: float = 2.0
 @export var obstacle_avoid_strength: float = 1.35
+## Once a side is picked to go round something, it is held for this long.
+##
+## Without it, avoidance re-decides every frame. Two clearances that are nearly
+## equal — which is the normal case for a headstone in open ground — flip the
+## chosen side on tiny differences, and the enemy zigzags on the spot instead of
+## travelling. Committing to a side for a moment is also just what going round
+## something looks like.
+@export var obstacle_commit_seconds: float = 0.55
 ## Layer 1 is world geometry. Enemies are deliberately excluded — they are handled
 ## by separation, and treating them as walls makes crowds jitter.
 @export_flags_3d_physics var obstacle_collision_mask: int = 1
@@ -23,15 +31,45 @@ extends Node
 @export_group("Separation")
 @export var separation_radius: float = 1.4
 @export var separation_strength: float = 1.1
+## Cap on the combined separation push, so being surrounded cannot outvote the
+## direction of travel entirely.
+@export var separation_limit: float = 1.0
 
 @export_group("Pathing")
 ## Seconds between navigation target updates. Repathing every frame is wasteful
 ## and makes agents twitch.
 @export var path_update_interval: float = 0.2
+## How far the goal must move before the path is recomputed.
+##
+## Repathing on a timer alone re-decides the route five times a second at a
+## target that has barely moved. Each recomputation can pick a different first
+## corner, and the enemy turns toward a new one every 200 ms — a slow left-right
+## wobble that costs it most of its forward speed. Chasing a player who is
+## standing still should not need a new path at all.
+@export var repath_distance: float = 0.6
+
+@export_group("Smoothing")
+## How fast the steering direction may turn, in degrees per second.
+##
+## The influences below are recomputed from scratch every frame and can differ
+## sharply between one frame and the next. Feeding that straight into velocity is
+## what makes a group read as twitching rather than walking; rate-limiting the
+## heading costs nothing in responsiveness at these speeds.
+@export var turn_rate_degrees: float = 540.0
 
 var _body: CharacterBody3D = null
 var _agent: NavigationAgent3D = null
 var _path_timer: float = 0.0
+var _last_goal: Vector3 = Vector3.INF
+
+## Which way round the current obstacle, and how long that choice still holds.
+var _avoid_side: float = 0.0
+var _avoid_hold: float = 0.0
+
+## Last direction returned, so the heading can be rate-limited rather than
+## snapping to whatever this frame's influences add up to.
+var _smoothed: Vector3 = Vector3.ZERO
+var _last_delta: float = 0.0
 
 
 func _ready() -> void:
@@ -42,9 +80,15 @@ func _ready() -> void:
 	_agent = _body.get_node_or_null("NavigationAgent3D") as NavigationAgent3D
 
 
-func _process(delta: float) -> void:
+## Timers tick on the physics clock because that is the clock steering is queried
+## on. Ticking them in _process meant the commit window and the turn-rate limit
+## were measured against a different frame rate than the one moving the enemy.
+func _physics_process(delta: float) -> void:
+	_last_delta = delta
 	if _path_timer > 0.0:
 		_path_timer -= delta
+	if _avoid_hold > 0.0:
+		_avoid_hold -= delta
 
 
 ## Direction the body should move to reach goal_position, already steered around
@@ -62,14 +106,21 @@ func get_direction_to(goal_position: Vector3) -> Vector3:
 	var desired: Vector3 = to_goal.normalized()
 
 	if _agent != null:
-		if _path_timer <= 0.0:
+		var goal_moved: bool = (
+			is_inf(_last_goal.x) or goal_position.distance_to(_last_goal) > repath_distance
+		)
+		if _path_timer <= 0.0 and goal_moved:
 			_agent.target_position = goal_position
+			_last_goal = goal_position
 			_path_timer = path_update_interval
 
 		if not _agent.is_navigation_finished():
 			var next_point: Vector3 = _agent.get_next_path_position() - _body.global_position
 			next_point.y = 0.0
-			if next_point.length_squared() > 0.01:
+			# Ignored when the corner is close enough to be standing on. Aiming at
+			# a point half a step away swings the heading wildly as it is passed,
+			# which is the same wobble arriving by a different route.
+			if next_point.length() > 0.35:
 				desired = next_point.normalized()
 
 	return _apply_influences(desired)
@@ -132,21 +183,58 @@ func _apply_influences(desired: Vector3) -> Vector3:
 	# Influences can cancel out exactly; fall back to the raw heading rather than
 	# freezing in place.
 	if steered.length_squared() <= 0.001:
-		return desired
-	return steered.normalized()
+		steered = desired
+
+	return _smooth(steered.normalized())
 
 
-## Returns a sideways nudge when something blocks the way, choosing whichever side
-## has more room.
+## Rate-limits how fast the heading may swing.
+func _smooth(target: Vector3) -> Vector3:
+	if _smoothed.length_squared() < 0.001:
+		_smoothed = target
+		return target
+
+	# Falls back to the body's own physics step, so a caller that queries steering
+	# before the first _physics_process still gets a sane limit rather than a
+	# near-zero one that pins the heading in place.
+	var step: float = _last_delta if _last_delta > 0.0 else get_physics_process_delta_time()
+	var limit: float = deg_to_rad(turn_rate_degrees) * maxf(step, 0.0001)
+	var angle: float = _smoothed.signed_angle_to(target, Vector3.UP)
+	_smoothed = _smoothed.rotated(Vector3.UP, clampf(angle, -limit, limit)).normalized()
+	return _smoothed
+
+
+## A sideways push around whatever is in the way, proportional to how blocked the
+## path is and committed to one side for long enough to actually get round.
+##
+## This used to be all-or-nothing: a full-strength perpendicular the instant a
+## feeler touched anything, and nothing at all the instant it cleared. That is a
+## loop — steer off, the feeler clears, steer back, the feeler hits — and it is
+## why enemies crabbed left and right instead of closing.
 func _get_obstacle_avoidance(desired: Vector3) -> Vector3:
-	if desired == Vector3.ZERO or not _feelers_hit(desired):
+	if desired == Vector3.ZERO:
+		return Vector3.ZERO
+
+	var ahead: float = _best_clearance(desired)
+	if ahead >= obstacle_avoid_distance:
+		# Nothing in the way. The committed side is kept until it times out, so
+		# clearing the obstacle for a single frame does not restart the decision.
+		if _avoid_hold <= 0.0:
+			_avoid_side = 0.0
 		return Vector3.ZERO
 
 	var left: Vector3 = Vector3(-desired.z, 0.0, desired.x).normalized()
-	var left_clearance: float = _best_clearance((desired + left * 0.85).normalized())
-	var right_clearance: float = _best_clearance((desired - left * 0.85).normalized())
 
-	return left if left_clearance >= right_clearance else -left
+	if _avoid_side == 0.0 or _avoid_hold <= 0.0:
+		var left_clearance: float = _best_clearance((desired + left * 0.85).normalized())
+		var right_clearance: float = _best_clearance((desired - left * 0.85).normalized())
+		_avoid_side = 1.0 if left_clearance >= right_clearance else -1.0
+		_avoid_hold = obstacle_commit_seconds
+
+	# Proportional to how close the obstruction is, so a distant wall bends the
+	# path and a near one turns it hard.
+	var urgency: float = 1.0 - clampf(ahead / maxf(obstacle_avoid_distance, 0.001), 0.0, 1.0)
+	return left * _avoid_side * urgency
 
 
 func _get_separation() -> Vector3:
@@ -165,7 +253,12 @@ func _get_separation() -> Vector3:
 		# Weight by closeness so crowding pushes harder than mere proximity.
 		separation += offset.normalized() * (1.0 - distance / separation_radius)
 
-	return separation.normalized() if separation.length_squared() > 0.001 else Vector3.ZERO
+	# Limited rather than normalised. Normalising made one distant neighbour push
+	# exactly as hard as being wedged in a crowd, so a pair of enemies walking
+	# near each other shoved each other about as violently as a scrum.
+	if separation.length() > separation_limit:
+		separation = separation.normalized() * separation_limit
+	return separation
 
 
 func _feelers_hit(direction: Vector3) -> bool:

@@ -39,6 +39,7 @@ func _initialize() -> void:
 	await _test_crawler_leap()
 	await _test_retreat_direction()
 	await _test_fall_recovery()
+	await _test_travels_without_zigzagging()
 
 	print("\n=== %d/%d checks passed ===" % [_checks - _failures, _checks])
 	if _failures > 0:
@@ -404,3 +405,69 @@ func _check(condition: bool, description: String) -> bool:
 	_failures += 1
 	print("  FAIL  %s" % description)
 	return false
+
+
+## Enemies must close on the player, not crab.
+##
+## Measured on a GROUP, because that is where the oscillation actually came from.
+## Graveyard scenery carries no collision, so obstacle feelers rarely fire out
+## there; what does fire, constantly, is separation between the members of an
+## encounter. It was normalised to full strength and then scaled by 1.1, making
+## the push away from a neighbour stronger than the pull toward the player. Two
+## enemies converging would shove each other apart, re-converge, and shove again
+## — visibly sliding left and right while barely advancing.
+func _test_travels_without_zigzagging() -> void:
+	var group: Array[Node3D] = []
+	for i in range(5):
+		var enemy := (load("res://scenes/enemies/ToneDeaf.tscn") as PackedScene).instantiate() as Node3D
+		_root.add_child(enemy)
+		# Deliberately tight: inside each other's separation radius from the start.
+		enemy.global_position = Vector3(-1.2 + 0.6 * float(i), 1.0, -15.0 - 0.4 * float(i))
+		group.append(enemy)
+
+	for i in range(10):
+		await physics_frame
+
+	var watched: Node3D = group[2]
+	var start: Vector3 = watched.global_position
+	var previous: Vector3 = start
+	var travelled: float = 0.0
+	var reversals: int = 0
+	var last_sideways: float = 0.0
+
+	for i in range(180):
+		await physics_frame
+		var step: Vector3 = watched.global_position - previous
+		step.y = 0.0
+		travelled += step.length()
+
+		if step.length() > 0.002:
+			# Sideways relative to the line to the player, so ordinary turning
+			# does not count as a reversal.
+			var to_player: Vector3 = _player.global_position - watched.global_position
+			to_player.y = 0.0
+			var side: Vector3 = Vector3(-to_player.z, 0.0, to_player.x).normalized()
+			var sideways: float = step.dot(side)
+			if absf(sideways) > 0.004:
+				if last_sideways != 0.0 and signf(sideways) != signf(last_sideways):
+					reversals += 1
+				last_sideways = sideways
+
+		previous = watched.global_position
+
+	var closed: float = start.distance_to(_player.global_position) - watched.global_position.distance_to(_player.global_position)
+	var efficiency: float = closed / maxf(travelled, 0.001)
+
+	_check(closed > 5.0, "an enemy in a group closes on the player (%.1fm)" % closed)
+	_check(
+		efficiency > 0.6,
+		"most of its movement is toward the player (%.0f%% of %.1fm travelled)" % [efficiency * 100.0, travelled]
+	)
+	_check(
+		reversals < 3,
+		"it does not crab left and right on the way (%d direction reversals in 3s)" % reversals
+	)
+
+	for enemy: Node3D in group:
+		enemy.queue_free()
+	await physics_frame

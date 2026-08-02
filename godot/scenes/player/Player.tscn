@@ -19,6 +19,7 @@
 [ext_resource type="PackedScene" path="res://assets/kaykit/animations/Animations/gltf/Rig_Medium/Rig_Medium_CombatMelee.glb" id="19_lib_melee"]
 [ext_resource type="Script" path="res://scripts/player/HealthRegen.gd" id="16_regen"]
 [ext_resource type="PackedScene" path="res://assets/weapons/lute_bludgeon.glb" id="20_lute"]
+[ext_resource type="Script" path="res://scripts/characters/WeaponSocket.gd" id="31_socket"]
 [ext_resource type="PackedScene" path="res://assets/characters/riff/animations/Idle_9.glb" id="21_idle"]
 [ext_resource type="PackedScene" path="res://assets/characters/riff/animations/running.glb" id="22_run"]
 [ext_resource type="PackedScene" path="res://assets/characters/riff/animations/Proud_Strut.glb" id="23_walk"]
@@ -31,8 +32,8 @@
 [ext_resource type="PackedScene" path="res://assets/characters/riff/animations/Gentlemans_Bow.glb" id="30_bow"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
-radius = 0.5
-height = 2.0
+radius = 0.32
+height = 1.25
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_player"]
 radius = 0.5
@@ -67,7 +68,7 @@ collision_mask = 5
 script = ExtResource("1_controller")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.625, 0)
 shape = SubResource("CapsuleShape3D_player")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="."]
@@ -91,7 +92,7 @@ procedural_mesh_path = NodePath(".")
 ; Scale and ground offset only. Facing is CharacterVisual.model_yaw_degrees, so
 ; the correction is visible and named rather than hidden in this matrix.
 [node name="Body" parent="MeshInstance3D/CharacterVisual" instance=ExtResource("14_body")]
-transform = Transform3D(0.76, 0, 0, 0, 0.76, 0, 0, 0, 0.76, 0, -1, 0)
+transform = Transform3D(0.76, 0, 0, 0, 0.76, 0, 0, 0, 0.76, 0, -1.02, 0)
 
 [node name="LuteWeapon" type="Node3D" parent="MeshInstance3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, 0.2, -0.4)
@@ -163,10 +164,14 @@ script = ExtResource("13_combat_state")
 [node name="HealthRegen" type="Node" parent="."]
 script = ExtResource("16_regen")
 
+; Sized and gripped by the socket script from measurements, not by a transform
+; here. This rig's armature is scaled to about 1/136, so any figure written into
+; the scene is really the reciprocal of an export setting and breaks the moment
+; the model is exported again.
 [node name="WeaponSocket" type="BoneAttachment3D" parent="MeshInstance3D/CharacterVisual/Body/Armature/Skeleton3D" index="0"]
 bone_name = "RightHand"
+script = ExtResource("31_socket")
+weapon_length_metres = 0.72
+grip_fraction = 0.78
 
-; The model is authored lying along X with its origin at the centre of the body,
-; so it is rotated upright and offset until the grip sits in the hand.
 [node name="Lute" parent="MeshInstance3D/CharacterVisual/Body/Armature/Skeleton3D/WeaponSocket" instance=ExtResource("20_lute")]
-transform = Transform3D(0, -1.5, 0, 1.5, 0, 0, 0, 0, 1.5, 0, 0.42, 0)

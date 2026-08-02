@@ -75,6 +75,153 @@ func _test_player_visual(player: Node3D) -> void:
 
 	await _check_clips_move_bones(player, visual)
 
+	await _check_stands_on_the_floor(player, visual)
+	_check_weapon(player)
+
+
+## Riff was buried to the shins for an entire art pass. The model's origin sits at
+## its hips rather than its feet, so the ground offset that was right for the
+## previous character sank this one, and nothing in the game says so — he simply
+## looks short.
+func _check_stands_on_the_floor(player: Node3D, visual: Node) -> void:
+	var skeleton: Skeleton3D = _find_node(player, "Skeleton3D") as Skeleton3D
+	if skeleton == null:
+		return
+
+	# Posed before measuring, and waited on rather than slept on. This rig's rest
+	# pose is flattened — every bone sits on the skeleton origin and the real
+	# transforms live in the animation tracks — so an unposed skeleton reports the
+	# character as a single point and the stance check becomes meaningless.
+	# Waited until the pose stops changing, not until it merely looks posed. The
+	# clip sampled just before this is the death animation, and the blend out of
+	# it passes through plenty of poses that are spread out but still mid-fall.
+	visual.call("reset")
+	var spread: float = 0.0
+	var previous: float = INF
+	for i in range(120):
+		await process_frame
+		var lowest: float = _lowest_bone(skeleton)
+		spread = _bone_spread(skeleton)
+		if i > 10 and absf(lowest - previous) < 0.001:
+			break
+		previous = lowest
+
+	if not _check(spread > 0.5, "the idle pose actually poses the skeleton (spread %.2fm)" % spread):
+		return
+
+	# Measured against the body's own origin, not world zero. The capsule's base
+	# sits on that origin, so this is how far the model floats above its feet or
+	# sinks below them, wherever in the level the player is standing.
+	var offset: float = _lowest_bone(skeleton) - player.global_position.y
+
+	# Bones sit inside the mesh, so the toe bone is legitimately a little under
+	# the sole. Being a whole shin under is not.
+	_check(
+		offset > -0.10 and offset < 0.25,
+		"the player stands on his feet, not sunk into them (toe is %+.2fm from the capsule base)" % offset
+	)
+
+
+func _lowest_bone(skeleton: Skeleton3D) -> float:
+	var lowest: float = INF
+	for i in range(skeleton.get_bone_count()):
+		lowest = minf(lowest, (skeleton.global_transform * skeleton.get_bone_global_pose(i)).origin.y)
+	return 0.0 if is_inf(lowest) else lowest
+
+
+func _bone_spread(skeleton: Skeleton3D) -> float:
+	var lowest: float = INF
+	var highest: float = -INF
+	for i in range(skeleton.get_bone_count()):
+		var y: float = (skeleton.global_transform * skeleton.get_bone_global_pose(i)).origin.y
+		lowest = minf(lowest, y)
+		highest = maxf(highest, y)
+	return 0.0 if is_inf(lowest) else highest - lowest
+
+
+## The lute was invisible, not missing: this rig's armature is scaled to about
+## 1/136, so the size written into the scene rendered it eleven millimetres
+## across. Both the size and which end is held are asserted, because the grip was
+## also backwards — held by the body, swung with the neck.
+func _check_weapon(player: Node3D) -> void:
+	# Found by engine class: _find_node matches is_class, and WeaponSocket is a
+	# script class name, which is_class does not know about.
+	var socket: Node3D = _find_node(player, "BoneAttachment3D") as Node3D
+	if not _check(socket != null, "player has a weapon socket"):
+		return
+
+	if socket.has_method("fit_now"):
+		socket.call("fit_now")
+
+	var attachment := socket as BoneAttachment3D
+	_check(attachment == null or attachment.bone_idx >= 0, "the weapon socket resolves its bone")
+
+	var weapon: Node3D = null
+	for child in socket.get_children():
+		weapon = child as Node3D
+		if weapon != null:
+			break
+	if not _check(weapon != null, "a weapon is mounted on the socket"):
+		return
+
+	var bounds: AABB = _world_bounds(weapon)
+	var length: float = maxf(bounds.size.x, maxf(bounds.size.y, bounds.size.z))
+	_check(length > 0.35 and length < 1.2, "the weapon is a believable size (%.2fm)" % length)
+
+	# Which end reaches away from the hand decides whether Riff clubs with the
+	# body or pokes with the headstock.
+	var local: AABB = _local_bounds(weapon)
+	var axis: int = 0
+	if local.size.y > local.size.x and local.size.y >= local.size.z:
+		axis = 1
+	elif local.size.z > local.size.x and local.size.z > local.size.y:
+		axis = 2
+
+	var low: Vector3 = local.get_center()
+	var high: Vector3 = local.get_center()
+	low[axis] = local.position[axis]
+	high[axis] = local.position[axis] + local.size[axis]
+
+	var hand: Vector3 = socket.global_position
+	var body_reach: float = (weapon.global_transform * low).distance_to(hand)
+	var head_reach: float = (weapon.global_transform * high).distance_to(hand)
+	_check(
+		body_reach > head_reach,
+		"the lute is held by the neck and struck with the body (body %.2fm vs neck %.2fm from the hand)" % [
+			body_reach, head_reach
+		]
+	)
+
+
+func _world_bounds(node: Node3D) -> AABB:
+	var bounds := AABB()
+	var first: bool = true
+	for visual: VisualInstance3D in _all_visuals(node):
+		var box: AABB = visual.global_transform * visual.get_aabb()
+		bounds = box if first else bounds.merge(box)
+		first = false
+	return bounds
+
+
+func _local_bounds(node: Node3D) -> AABB:
+	var into: Transform3D = node.global_transform.affine_inverse()
+	var bounds := AABB()
+	var first: bool = true
+	for visual: VisualInstance3D in _all_visuals(node):
+		var box: AABB = into * visual.global_transform * visual.get_aabb()
+		bounds = box if first else bounds.merge(box)
+		first = false
+	return bounds
+
+
+func _all_visuals(node: Node) -> Array[VisualInstance3D]:
+	var found: Array[VisualInstance3D] = []
+	if node is VisualInstance3D:
+		found.append(node as VisualInstance3D)
+	for child in node.get_children():
+		found.append_array(_all_visuals(child))
+	return found
+
 
 ## Clips that exist and play, but move nothing.
 ##
