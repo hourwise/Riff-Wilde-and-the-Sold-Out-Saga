@@ -147,7 +147,7 @@ func _build_ground() -> void:
 	var material := StandardMaterial3D.new()
 	# Damp earth: dark, desaturated, so torchlight and spectral flame carry all
 	# the colour in the scene.
-	material.albedo_color = Color(0.10, 0.11, 0.09)
+	material.albedo_color = Color(0.16, 0.14, 0.11)
 	material.roughness = 1.0
 	plane.material = material
 	mesh_instance.mesh = plane
@@ -331,13 +331,17 @@ func _place(
 	return node
 
 
-## Warm point light on lamp posts. The demo's whole lighting idea is torchlight
-## against fog, and these are what make the graveyard readable at all.
+## Warm, flickering light on lamp posts. The demo's whole lighting idea is
+## torchlight against fog, and these are what make the graveyard readable at all
+## — and what give the player something to navigate between.
 func _add_lamp(post: Node3D) -> void:
-	var light := OmniLight3D.new()
-	light.light_color = Color(1.0, 0.72, 0.38)
-	light.light_energy = 2.4
-	light.omni_range = 11.0
+	var light := TorchFlicker.new()
+	light.light_color = Color(1.0, 0.68, 0.34)
+	light.base_energy = _rng.randf_range(2.2, 3.0)
+	light.light_energy = light.base_energy
+	light.omni_range = 13.0
+	# Shadows from every lamp would be ruinous with this many lights; the fog and
+	# the moonlight's shadows carry the depth instead.
 	light.shadow_enabled = false
 	light.position = Vector3(0.0, 1.2, 0.0)
 	post.add_child(light)
