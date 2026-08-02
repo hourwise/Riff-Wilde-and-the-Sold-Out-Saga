@@ -22,6 +22,42 @@ produced in parallel with code and dropped in without any changes to gameplay lo
 
 Deliver music to `godot/assets/audio/music/` and SFX to `godot/assets/audio/sfx/`.
 
+## Two ways to deliver music
+
+The director accepts either, and reports which mode it is in on startup.
+
+**Layered stems** — the original contract below. Four combat parts bounced from
+one arrangement, all 120 BPM and exactly 32.000s, sample-aligned. They are started
+together and never restarted, and the Encore reveals them one at a time on bar
+boundaries. This is the richer option and the meter's effect is unmistakable.
+
+**One finished arrangement** — a whole track of any length and tempo, named
+`combat_full` / `boss_choirmaster_full`. The Encore then drives *intensity*
+instead: a low-pass filter that opens and a level that lifts as the meter climbs,
+so a low Encore sounds like the music is in another room and a full one brings it
+into this one. This is not a degraded fallback; it is what the delivered tracks
+needed.
+
+`.ogg` and `.wav` are both accepted. `.ogg` is strongly preferred — the three
+delivered `.wav` tracks are 68 MB between them, against roughly 6 MB as Ogg
+Vorbis at a quality nobody would tell apart. If the tracks can be re-exported as
+`.ogg`, drop them in beside the `.wav` files and the director will prefer them
+with no code change.
+
+## Delivered
+
+| Track | File | Length | Notes |
+|---|---|---|---|
+| Moonlit Crypt | `explore_graveyard_ambient.wav` | 84.4s | The exploration bed. |
+| Spectral Fanfare | `combat_full.wav` | 82.9s | Combat, run as one arrangement. |
+| The Liturgical Duel | `boss_choirmaster_full.wav` | 190.9s | The Choirmaster. Opens further at each conducted interlude. |
+
+All three are 48 kHz stereo, set to loop forward on import, and compressed to QOA
+in the project so the 68 MB on disk is not 68 MB in memory.
+
+Still wanted: `tavern_ambient` for the Inn, and an encore stinger for the closing
+performance.
+
 ---
 
 ## 2. The Layered Combat System — Critical Constraint

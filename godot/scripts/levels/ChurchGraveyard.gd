@@ -199,4 +199,8 @@ func _summon_choirmaster() -> void:
 	if altar != null:
 		boss.set("altar_path", boss.get_path_to(altar))
 
+	# The music changes with him, not with the bell: the toll is the cue, but the
+	# arrangement belongs to the fight that follows it.
+	MusicDirector.play_boss(0)
+
 	print("[ChurchGraveyard] The Choirmaster takes the stand at %s." % str(boss.global_position))

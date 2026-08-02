@@ -8,6 +8,19 @@ extends Node
 ## fading volume, and reveals are quantised to the next bar so an instrument never
 ## enters off-beat.
 ##
+## Works two ways, because music arrives two ways.
+##
+## Given the four authored stems it layers them: started together, never stopped
+## or restarted individually, revealed by volume on bar boundaries. Given a single
+## finished arrangement instead — which is how most music is actually written —
+## it plays that and expresses the Encore through *intensity*: a low-pass that
+## opens and a level that lifts as the meter climbs, so a low Encore sounds
+## distant and muffled and a full one is bright and present.
+##
+## The second mode is not a degraded version of the first. It is what the delivered
+## tracks needed, and it keeps the promise that what the player has achieved is
+## audible before it is visible.
+##
 ## Purely a consumer: it listens on EventBus and never calls into gameplay.
 
 const MUSIC_DIRECTORY: String = "res://assets/audio/music"
@@ -41,6 +54,18 @@ const BOSS_LAYERS: PackedStringArray = [
 	"boss_choirmaster_l2",
 ]
 
+## Used when no layered stems are present. A complete arrangement, played whole.
+const COMBAT_FULL: String = "combat_full"
+const BOSS_FULL: String = "boss_choirmaster_full"
+
+## Cutoff and level per Encore tier, for single-track mode.
+##
+## The filter is doing most of the work: volume alone reads as "quieter", which is
+## the wrong idea entirely. A closed filter reads as the music being somewhere
+## else, and opening it as the fight arriving.
+const INTENSITY_CUTOFF_HZ: PackedFloat32Array = [900.0, 2400.0, 6500.0, 20000.0]
+const INTENSITY_DB: PackedFloat32Array = [-7.0, -4.5, -2.0, 0.0]
+
 var _ambient_player: AudioStreamPlayer = null
 var _tavern_player: AudioStreamPlayer = null
 var _combat_players: Array[AudioStreamPlayer] = []
@@ -54,6 +79,12 @@ var _live_enemies: int = 0
 
 var _missing_reported: Dictionary = {}
 
+## True when the section is served by one finished track rather than by stems.
+var _combat_is_single: bool = false
+var _boss_is_single: bool = false
+var _intensity_filters: Dictionary = {}
+var _intensity_tween: Tween = null
+
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -66,6 +97,9 @@ func _ready() -> void:
 	EventBus.enemy_died.connect(_on_enemy_died)
 	EventBus.game_state_changed.connect(_on_game_state_changed)
 	EventBus.scene_transition_started.connect(_on_scene_transition)
+	EventBus.boss_interlude_started.connect(_on_boss_interlude_started)
+	EventBus.boss_interlude_finished.connect(_on_boss_interlude_finished)
+	EventBus.boss_defeated.connect(_on_boss_defeated)
 
 	print("[MusicDirector] Ready. Bar length %.3fs." % get_bar_seconds())
 
@@ -91,7 +125,12 @@ func play_exploration() -> void:
 	_stop_group(_boss_players)
 	_fade_to(_tavern_player, SILENT_DB, FADE_OUT_SECONDS)
 
-	_start_group(_combat_players)
+	# Stems are started here and left running silently, because starting them later
+	# is what breaks their phase lock. A single arrangement has nothing to stay
+	# locked to, and starting it now would mean combat joins it wherever it happens
+	# to have got to — so it waits and begins at its own opening.
+	if not _combat_is_single:
+		_start_group(_combat_players)
 	_apply_combat_layers(false)
 	_fade_to(_ambient_player, 0.0, CROSSFADE_SECONDS)
 
@@ -114,6 +153,14 @@ func play_boss(phase: int = 0) -> void:
 	_fade_group(_combat_players, SILENT_DB, FADE_OUT_SECONDS)
 
 	_start_group(_boss_players)
+
+	if _boss_is_single:
+		# One arrangement: the phase opens it up rather than adding to it, so the
+		# conducted interludes still lift the music.
+		_fade_to(_boss_players[0], 0.0, CROSSFADE_SECONDS)
+		_apply_intensity(AudioManager.BUS_MUSIC_BOSS, phase + 1)
+		return
+
 	for index in range(_boss_players.size()):
 		_fade_to(_boss_players[index], 0.0 if index <= phase else SILENT_DB, CROSSFADE_SECONDS)
 
@@ -160,6 +207,23 @@ func _on_encore_tier_changed(tier: int) -> void:
 		_reveal_layers_on_next_bar()
 
 
+## The conducted interludes are the fight's escalation, so they are the music's
+## too. Each one opens the arrangement further and it stays there — the fight only
+## ever gets worse.
+func _on_boss_interlude_started(number: int, _total: int) -> void:
+	play_boss(number)
+
+
+func _on_boss_interlude_finished(completed: int, _total: int) -> void:
+	play_boss(completed)
+
+
+func _on_boss_defeated(_boss_id: StringName) -> void:
+	_boss_active = false
+	_fade_group(_boss_players, SILENT_DB, AMBIENT_RETURN_SECONDS)
+	_fade_to(_ambient_player, 0.0, AMBIENT_RETURN_SECONDS)
+
+
 func _on_game_state_changed(_previous: int, current: int) -> void:
 	if current == GameManager.GameState.INN_HUB:
 		play_tavern()
@@ -182,6 +246,14 @@ func _leave_combat() -> void:
 ## never enters mid-phrase. Uses layer one's playback position as the clock,
 ## since every stem shares its timeline.
 func _reveal_layers_on_next_bar() -> void:
+	# Quantisation only makes sense against stems authored at BEATS_PER_MINUTE.
+	# A finished track has its own tempo, and holding a change for "the next bar"
+	# of a bar length it does not share would land the change at a random point
+	# and delay it for no reason.
+	if _combat_is_single:
+		_apply_combat_layers(true)
+		return
+
 	var clock: AudioStreamPlayer = _combat_players[0] if not _combat_players.is_empty() else null
 	if clock == null or not clock.playing:
 		_apply_combat_layers(true)
@@ -205,7 +277,17 @@ func _reveal_layers_on_next_bar() -> void:
 
 ## Layer N is audible when the Encore tier has reached N. Layers are faded, never
 ## started or stopped, so they stay locked to each other.
+##
+## With a single arrangement there is nothing to reveal, so the Encore is applied
+## to the sound of the track instead.
 func _apply_combat_layers(audible: bool) -> void:
+	if _combat_is_single:
+		var track: AudioStreamPlayer = _combat_players[0] if not _combat_players.is_empty() else null
+		if track != null:
+			_fade_to(track, 0.0 if audible else SILENT_DB, FADE_IN_SECONDS if audible else FADE_OUT_SECONDS, false)
+		_apply_intensity(AudioManager.BUS_MUSIC_COMBAT, _encore_tier if audible else 0)
+		return
+
 	for index in range(_combat_players.size()):
 		var wanted: bool = audible and index <= _encore_tier
 		_fade_to(
@@ -216,16 +298,91 @@ func _apply_combat_layers(audible: bool) -> void:
 		)
 
 
+## Applies an Encore tier to a whole arrangement, as filter and level.
+##
+## The filter carries the idea. Turning the volume down reads as "quieter", which
+## says nothing about how the fight is going; closing a low-pass reads as the music
+## being in another room, and opening it as the fight arriving in this one.
+func _apply_intensity(bus: StringName, tier: int) -> void:
+	var filter: AudioEffectLowPassFilter = _intensity_filter(bus)
+	if filter == null:
+		return
+
+	var step: int = clampi(tier, 0, INTENSITY_CUTOFF_HZ.size() - 1)
+
+	if _intensity_tween != null and _intensity_tween.is_valid():
+		_intensity_tween.kill()
+	_intensity_tween = create_tween()
+	_intensity_tween.set_parallel(true)
+	# Eased, not snapped: a filter jumping open on the frame a tier is crossed is
+	# audible as a click rather than as a swell.
+	_intensity_tween.tween_property(filter, "cutoff_hz", INTENSITY_CUTOFF_HZ[step], CROSSFADE_SECONDS)
+
+	var index: int = AudioServer.get_bus_index(bus)
+	if index >= 0:
+		_intensity_tween.tween_method(
+			func(db: float) -> void: AudioServer.set_bus_volume_db(index, db),
+			AudioServer.get_bus_volume_db(index),
+			INTENSITY_DB[step],
+			CROSSFADE_SECONDS
+		)
+
+
+## The low-pass on a music bus, added on first use.
+##
+## Added at runtime rather than saved into the shared bus layout: this filter
+## belongs to the director that drives it, and a project-wide layout carrying an
+## effect that only one mode uses is the kind of thing that gets "tidied away".
+func _intensity_filter(bus: StringName) -> AudioEffectLowPassFilter:
+	if _intensity_filters.has(bus):
+		return _intensity_filters[bus]
+
+	var index: int = AudioServer.get_bus_index(bus)
+	if index < 0:
+		push_warning("[MusicDirector] No audio bus named %s." % bus)
+		return null
+
+	var filter := AudioEffectLowPassFilter.new()
+	filter.cutoff_hz = INTENSITY_CUTOFF_HZ[0]
+	AudioServer.add_bus_effect(index, filter)
+	_intensity_filters[bus] = filter
+	return filter
+
+
 # ── Playback plumbing ────────────────────────────────────────────
 
 func _build_players() -> void:
 	_ambient_player = _make_player("Ambient", "explore_graveyard_ambient", AudioManager.BUS_MUSIC_AMBIENT)
 	_tavern_player = _make_player("Tavern", "tavern_ambient", AudioManager.BUS_MUSIC_AMBIENT)
 
-	for stem: String in COMBAT_LAYERS:
-		_combat_players.append(_make_player(stem, stem, AudioManager.BUS_MUSIC_COMBAT))
-	for stem: String in BOSS_LAYERS:
-		_boss_players.append(_make_player(stem, stem, AudioManager.BUS_MUSIC_BOSS))
+	_combat_is_single = not _any_stem_exists(COMBAT_LAYERS)
+	if _combat_is_single:
+		_combat_players.append(_make_player("CombatFull", COMBAT_FULL, AudioManager.BUS_MUSIC_COMBAT))
+	else:
+		for stem: String in COMBAT_LAYERS:
+			_combat_players.append(_make_player(stem, stem, AudioManager.BUS_MUSIC_COMBAT))
+
+	_boss_is_single = not _any_stem_exists(BOSS_LAYERS)
+	if _boss_is_single:
+		_boss_players.append(_make_player("BossFull", BOSS_FULL, AudioManager.BUS_MUSIC_BOSS))
+	else:
+		for stem: String in BOSS_LAYERS:
+			_boss_players.append(_make_player(stem, stem, AudioManager.BUS_MUSIC_BOSS))
+
+	print("[MusicDirector] Combat: %s. Boss: %s." % [
+		"one arrangement, Encore drives intensity" if _combat_is_single else "%d layered stems" % _combat_players.size(),
+		"one arrangement" if _boss_is_single else "%d layered stems" % _boss_players.size(),
+	])
+
+
+## Whether any of a section's layered stems were delivered. All or nothing: a
+## partial set cannot be layered meaningfully, and quietly playing two of four
+## would sound like an arrangement with holes in it.
+func _any_stem_exists(stems: PackedStringArray) -> bool:
+	for stem: String in stems:
+		if _find_stem_path(stem) != "":
+			return true
+	return false
 
 
 ## Players are created whether or not the audio exists yet, so the whole system is
@@ -241,19 +398,36 @@ func _make_player(node_name: String, stem: String, bus: StringName) -> AudioStre
 	return player
 
 
+## Where a track lives, or an empty string. Both formats are accepted: .ogg is
+## smaller and preferred, but music arrives as .wav often enough that refusing it
+## would mean asking for a re-export before anything could be heard.
+func _find_stem_path(stem: String) -> String:
+	for extension: String in ["ogg", "wav"]:
+		var path: String = "%s/%s.%s" % [MUSIC_DIRECTORY, stem, extension]
+		if ResourceLoader.exists(path):
+			return path
+	return ""
+
+
 func _load_stem(stem: String) -> AudioStream:
-	var path: String = "%s/%s.ogg" % [MUSIC_DIRECTORY, stem]
-	if not ResourceLoader.exists(path):
+	var path: String = _find_stem_path(stem)
+	if path == "":
 		if not _missing_reported.has(stem):
 			_missing_reported[stem] = true
-			print("[MusicDirector] Stem not yet available: %s" % path)
+			print("[MusicDirector] Track not yet available: %s/%s" % [MUSIC_DIRECTORY, stem])
 		return null
 
 	var stream := ResourceLoader.load(path) as AudioStream
-	# Looping is a property of the file; enforce it here so a stem exported without
-	# a loop flag does not fall silent after one pass.
+	# Looping is a property of the file; enforced here so a track exported without
+	# a loop flag does not fall silent after one pass and leave a twelve-minute
+	# level in silence.
 	if stream is AudioStreamOggVorbis:
 		(stream as AudioStreamOggVorbis).loop = true
+	elif stream is AudioStreamWAV:
+		var sample := stream as AudioStreamWAV
+		if sample.loop_mode == AudioStreamWAV.LOOP_DISABLED:
+			sample.loop_mode = AudioStreamWAV.LOOP_FORWARD
+			sample.loop_end = 0
 	return stream
 
 

@@ -30,6 +30,7 @@ func _initialize() -> void:
 	print("\n=== Phase 4 smoke test ===\n")
 
 	_test_music_contract()
+	await _test_delivered_music()
 	await _test_encore_gain()
 	await _test_encore_tiers()
 	await _test_encore_decay()
@@ -370,6 +371,83 @@ func _test_restorative_song() -> void:
 	)
 
 	_bus.restorative_song_interrupted.disconnect(interrupt_handler)
+
+
+## The music that actually exists, as opposed to the contract it was specced to.
+##
+## The delivered tracks are finished arrangements, not the four tempo-locked stems
+## the director was built around, so it runs them in single-track mode and
+## expresses the Encore as intensity instead. That mode has its own ways to fail
+## silently: a track that does not load leaves the level mute, and an Encore that
+## changes nothing makes the meter cosmetic.
+func _test_delivered_music() -> void:
+	var director: Node = root.get_node_or_null("MusicDirector")
+	if director == null:
+		return
+
+	for track: String in ["explore_graveyard_ambient", "combat_full", "boss_choirmaster_full"]:
+		_check(
+			String(director.call("_find_stem_path", track)) != "",
+			"%s is present" % track
+		)
+
+	# Whatever the format, it has to loop. A twelve-minute level backed by an
+	# eighty-four second track that plays once is silent for most of the run.
+	for track: String in ["explore_graveyard_ambient", "combat_full", "boss_choirmaster_full"]:
+		var stream: AudioStream = director.call("_load_stem", track)
+		if not _check(stream != null, "%s loads as a stream" % track):
+			continue
+		var loops: bool = false
+		if stream is AudioStreamWAV:
+			loops = (stream as AudioStreamWAV).loop_mode != AudioStreamWAV.LOOP_DISABLED
+		elif stream is AudioStreamOggVorbis:
+			loops = (stream as AudioStreamOggVorbis).loop
+		_check(loops, "%s is set to loop" % track)
+
+	_check(bool(director.get("_combat_is_single")), "combat runs as one arrangement")
+
+	# The Encore has to change how it sounds, or the meter is decoration.
+	var bus: int = AudioServer.get_bus_index("MusicCombat")
+	if not _check(bus >= 0, "the combat music bus exists"):
+		return
+
+	director.call("_apply_intensity", &"MusicCombat", 0)
+	await process_frame
+	var filter: AudioEffectLowPassFilter = director.call("_intensity_filter", &"MusicCombat")
+	if not _check(filter != null, "an intensity filter is installed on it"):
+		return
+
+	# Waited out rather than sampled immediately: the change is eased over a
+	# crossfade so it swells instead of clicking.
+	var settle: SceneTreeTimer = create_timer(2.0, true, false, true)
+	await settle.timeout
+	var closed: float = filter.cutoff_hz
+	var quiet: float = AudioServer.get_bus_volume_db(bus)
+
+	director.call("_apply_intensity", &"MusicCombat", 3)
+	var opening: SceneTreeTimer = create_timer(2.0, true, false, true)
+	await opening.timeout
+
+	_check(
+		filter.cutoff_hz > closed * 2.0,
+		"a full Encore opens the arrangement up (%.0f Hz to %.0f Hz)" % [closed, filter.cutoff_hz]
+	)
+	_check(
+		AudioServer.get_bus_volume_db(bus) > quiet,
+		"and lifts it (%.1f dB to %.1f dB)" % [quiet, AudioServer.get_bus_volume_db(bus)]
+	)
+
+	# Only one filter, however many times intensity is applied. Stacking a new
+	# low-pass on every tier change would muffle the music a little more each time
+	# until it disappeared.
+	var effects: int = AudioServer.get_bus_effect_count(bus)
+	director.call("_apply_intensity", &"MusicCombat", 1)
+	director.call("_apply_intensity", &"MusicCombat", 2)
+	await process_frame
+	_check(
+		AudioServer.get_bus_effect_count(bus) == effects,
+		"repeated tier changes do not stack filters (%d effects)" % AudioServer.get_bus_effect_count(bus)
+	)
 
 
 # ── Helpers ──────────────────────────────────────────────────────
