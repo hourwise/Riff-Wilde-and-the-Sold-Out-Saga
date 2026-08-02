@@ -9,7 +9,7 @@ extends SceneTree
 ## than by eye.
 
 const SUBJECTS: Array[Dictionary] = [
-	{"label": "Player (Warrior)", "path": "res://scenes/player/Player.tscn"},
+	{"label": "Player", "path": "res://scenes/player/Player.tscn"},
 	{"label": "Tone Deaf", "path": "res://scenes/enemies/ToneDeaf.tscn"},
 	{"label": "Grave Crawler", "path": "res://scenes/enemies/GraveCrawler.tscn"},
 	{"label": "Hollow Choir", "path": "res://scenes/enemies/HollowChoir.tscn"},

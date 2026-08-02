@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://grave_crawler_enemy"]
+[gd_scene load_steps=12 format=3 uid="uid://grave_crawler_enemy"]
 
 [ext_resource type="Script" path="res://scripts/enemies/GraveCrawlerAI.gd" id="1_ai"]
 [ext_resource type="Script" path="res://scripts/combat/Hurtbox.gd" id="2_hurtbox"]
@@ -6,53 +6,59 @@
 [ext_resource type="Script" path="res://scripts/enemies/EnemySteering.gd" id="4_steering"]
 [ext_resource type="Script" path="res://scripts/characters/CharacterVisual.gd" id="5_visual"]
 [ext_resource type="Resource" path="res://resources/enemies/grave_crawler.tres" id="6_stats"]
-[ext_resource type="PackedScene" path="res://Easy Animated Enemy Pack - Jan 2019/FBX/Spider.fbx" id="7_model"]
+[ext_resource type="PackedScene" path="res://assets/kaykit/skeletons/characters/gltf/Skeleton_Rogue.glb" id="7_model"]
+[ext_resource type="PackedScene" path="res://assets/kaykit/animations/Animations/gltf/Rig_Medium/Rig_Medium_General.glb" id="8_lib_general"]
+[ext_resource type="PackedScene" path="res://assets/kaykit/animations/Animations/gltf/Rig_Medium/Rig_Medium_MovementBasic.glb" id="9_lib_move"]
+[ext_resource type="PackedScene" path="res://assets/kaykit/animations/Animations/gltf/Rig_Medium/Rig_Medium_CombatMelee.glb" id="10_lib_melee"]
 
 [sub_resource type="CapsuleShape3D" id="Shape_body"]
 radius = 0.35
-height = 0.9
+height = 1.2
 
 [sub_resource type="BoxShape3D" id="Shape_hurtbox"]
-size = Vector3(0.9, 0.9, 0.9)
+size = Vector3(0.9, 1.2, 0.9)
 
 [node name="GraveCrawler" type="CharacterBody3D"]
 collision_layer = 4
 collision_mask = 3
 script = ExtResource("1_ai")
 stats = ExtResource("6_stats")
-visual_tint = Color(0.62, 0.7, 0.6, 1)
+visual_tint = Color(0.62, 0.78, 0.62, 1)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
 shape = SubResource("Shape_body")
 
-; CharacterVisual is the node the AI turns, squashes and knocks over, and it
-; hosts the model so its AnimationPlayer is found automatically.
+; The model ships with no animations; motion comes from the shared Rig_Medium
+; libraries, merged on at load. Every character in the game draws from the same
+; motion set, which is what keeps them reading as one cast.
 [node name="CharacterVisual" type="Node3D" parent="."]
 script = ExtResource("5_visual")
-idle_animation = &"SpiderArmature|Spider_Idle"
-run_animation = &"SpiderArmature|Spider_Walk"
-attack_animations = Array[StringName]([&"SpiderArmature|Spider_Attack", &"SpiderArmature|Spider_Jump"])
-death_animation = &"SpiderArmature|Spider_Death"
-run_speed_scale = 1.4
-model_yaw_degrees = 180.0
+animation_libraries = Array[PackedScene]([ExtResource("8_lib_general"), ExtResource("9_lib_move"), ExtResource("10_lib_melee")])
+idle_animation = &"Idle_A"
+run_animation = &"Running_B"
+attack_animations = Array[StringName]([&"Melee_Dualwield_Attack_Slice", &"Melee_Dualwield_Attack_Stab"])
+hit_animation = &"Hit_A"
+death_animation = &"Death_A"
+model_yaw_degrees = 0.0
+run_speed_scale = 1.5
 procedural_mesh_path = NodePath(".")
 
 [node name="Model" parent="CharacterVisual" instance=ExtResource("7_model")]
-transform = Transform3D(0.19, 0, 0, 0, 0.19, 0, 0, 0, 0.19, 0, 0, 0)
+transform = Transform3D(0.7, 0, 0, 0, 0.7, 0, 0, 0, 0.7, 0, 0, 0)
 
 [node name="Hurtbox" type="Area3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
 script = ExtResource("2_hurtbox")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
 shape = SubResource("Shape_hurtbox")
 
 [node name="LockOnPoint" type="Marker3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 
 [node name="EnemyStatusBars" type="Node3D" parent="."]
-transform = Transform3D(1.25, 0, 0, 0, 1.25, 0, 0, 0, 1.25, 0, 1.2, 0)
+transform = Transform3D(1.25, 0, 0, 0, 1.25, 0, 0, 0, 1.25, 0, 1.5, 0)
 script = ExtResource("3_status_bars")
 bar_width = 0.7
 bar_height = 0.07
@@ -61,7 +67,7 @@ bar_height = 0.07
 path_desired_distance = 0.5
 target_desired_distance = 1.2
 radius = 0.35
-height = 0.9
+height = 1.2
 
 [node name="EnemySteering" type="Node" parent="."]
 script = ExtResource("4_steering")

@@ -27,6 +27,14 @@ extends Node3D
 ## an accident and gets "tidied away", which is exactly how this went wrong twice.
 @export_range(-180.0, 180.0, 90.0) var model_yaw_degrees: float = 0.0
 
+## Scenes whose animations are merged onto this character at load.
+##
+## Some packs ship the mesh and its animations as separate files that share one
+## rig — better for consistency, since every character draws from the same motion
+## set, but it has to be assembled here. Clips are copied in and their track paths
+## rewritten to point at this character's skeleton.
+@export var animation_libraries: Array[PackedScene] = []
+
 @export_group("Animation names")
 @export var idle_animation: StringName = &"Idle"
 @export var run_animation: StringName = &"Running"
@@ -68,12 +76,77 @@ var _one_shot_clip: StringName = &""
 func _ready() -> void:
 	_apply_model_yaw()
 	_animation_player = _resolve_animation_player()
+	_merge_animation_libraries()
 	_mesh = _resolve_procedural_mesh()
 	if _mesh != null:
 		_mesh_rest_scale = _mesh.scale
 
 	if _animation_player != null:
 		_animation_player.animation_finished.connect(_on_animation_finished)
+
+
+## Copies clips from the configured library scenes onto the character.
+##
+## No track remapping is needed for packs whose libraries and characters share a
+## rig layout: the tracks address nodes relative to the model root, so an
+## AnimationPlayer parented there resolves them as-is. Verified with
+## tools/inspect_kaykit_rig.gd before relying on it.
+func _merge_animation_libraries() -> void:
+	if animation_libraries.is_empty():
+		return
+
+	var model: Node3D = _resolve_model_root()
+	if model == null:
+		push_warning("[CharacterVisual] No model to merge animations onto.")
+		return
+
+	# Characters in these packs ship with no AnimationPlayer at all, since the
+	# motion lives in the shared libraries.
+	if _animation_player == null:
+		_animation_player = AnimationPlayer.new()
+		_animation_player.name = "AnimationPlayer"
+		model.add_child(_animation_player)
+
+	var merged := AnimationLibrary.new()
+	var clashes: int = 0
+
+	for scene: PackedScene in animation_libraries:
+		if scene == null:
+			continue
+
+		var source: Node = scene.instantiate()
+		var source_player: AnimationPlayer = _find_animation_player(source)
+		if source_player != null:
+			for clip: String in source_player.get_animation_list():
+				if merged.has_animation(clip):
+					# T-Pose and the like appear in several libraries.
+					clashes += 1
+					continue
+				merged.add_animation(clip, source_player.get_animation(clip).duplicate())
+		source.free()
+
+	_animation_player.add_animation_library("", merged)
+	_apply_loop_modes()
+
+
+## Locomotion clips are authored as single cycles; without looping they play once
+## and the character freezes mid-stride.
+func _apply_loop_modes() -> void:
+	for clip: StringName in [idle_animation, run_animation]:
+		if not _has_clip(clip):
+			continue
+		var animation: Animation = _animation_player.get_animation(String(clip))
+		if animation != null:
+			animation.loop_mode = Animation.LOOP_LINEAR
+
+
+## The instantiated model beneath this node.
+func _resolve_model_root() -> Node3D:
+	for child in get_children():
+		var model := child as Node3D
+		if model != null:
+			return model
+	return null
 
 
 ## Turns the model itself, leaving this node's own rotation free for the facing

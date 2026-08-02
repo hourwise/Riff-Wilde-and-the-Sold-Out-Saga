@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://bone_bell_ringer_enemy"]
+[gd_scene load_steps=12 format=3 uid="uid://bone_bell_ringer_enemy"]
 
 [ext_resource type="Script" path="res://scripts/enemies/BoneBellRingerAI.gd" id="1_ai"]
 [ext_resource type="Script" path="res://scripts/combat/Hurtbox.gd" id="2_hurtbox"]
@@ -6,7 +6,10 @@
 [ext_resource type="Script" path="res://scripts/enemies/EnemySteering.gd" id="4_steering"]
 [ext_resource type="Script" path="res://scripts/characters/CharacterVisual.gd" id="5_visual"]
 [ext_resource type="Resource" path="res://resources/enemies/bone_bell_ringer.tres" id="6_stats"]
-[ext_resource type="PackedScene" path="res://Animated Monster Pack by @Quaternius/FBX/Skeleton.fbx" id="7_model"]
+[ext_resource type="PackedScene" path="res://assets/kaykit/skeletons/characters/gltf/Skeleton_Warrior.glb" id="7_model"]
+[ext_resource type="PackedScene" path="res://assets/kaykit/animations/Animations/gltf/Rig_Medium/Rig_Medium_General.glb" id="8_lib_general"]
+[ext_resource type="PackedScene" path="res://assets/kaykit/animations/Animations/gltf/Rig_Medium/Rig_Medium_MovementBasic.glb" id="9_lib_move"]
+[ext_resource type="PackedScene" path="res://assets/kaykit/animations/Animations/gltf/Rig_Medium/Rig_Medium_CombatMelee.glb" id="10_lib_melee"]
 
 [sub_resource type="CapsuleShape3D" id="Shape_body"]
 radius = 0.62
@@ -20,26 +23,29 @@ collision_layer = 4
 collision_mask = 3
 script = ExtResource("1_ai")
 stats = ExtResource("6_stats")
-visual_tint = Color(1.12, 1.04, 0.82, 1)
+visual_tint = Color(1.12, 1.04, 0.85, 1)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
 shape = SubResource("Shape_body")
 
-; CharacterVisual is the node the AI turns, squashes and knocks over, and it
-; hosts the model so its AnimationPlayer is found automatically.
+; The model ships with no animations; motion comes from the shared Rig_Medium
+; libraries, merged on at load. Every character in the game draws from the same
+; motion set, which is what keeps them reading as one cast.
 [node name="CharacterVisual" type="Node3D" parent="."]
 script = ExtResource("5_visual")
-idle_animation = &"SkeletonArmature|Skeleton_Idle"
-run_animation = &"SkeletonArmature|Skeleton_Running"
-attack_animations = Array[StringName]([&"SkeletonArmature|Skeleton_Attack"])
-death_animation = &"SkeletonArmature|Skeleton_Death"
-run_speed_scale = 0.45
-model_yaw_degrees = 180.0
+animation_libraries = Array[PackedScene]([ExtResource("8_lib_general"), ExtResource("9_lib_move"), ExtResource("10_lib_melee")])
+idle_animation = &"Idle_A"
+run_animation = &"Walking_B"
+attack_animations = Array[StringName]([&"Melee_2H_Attack_Chop", &"Melee_2H_Attack_Spin"])
+hit_animation = &"Hit_A"
+death_animation = &"Death_A"
+model_yaw_degrees = 0.0
+run_speed_scale = 0.7
 procedural_mesh_path = NodePath(".")
 
 [node name="Model" parent="CharacterVisual" instance=ExtResource("7_model")]
-transform = Transform3D(0.6, 0, 0, 0, 0.48, 0, 0, 0, 0.6, 0, 0, 0)
+transform = Transform3D(1.24, 0, 0, 0, 1.24, 0, 0, 0, 1.24, 0, 0, 0)
 
 [node name="Hurtbox" type="Area3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
