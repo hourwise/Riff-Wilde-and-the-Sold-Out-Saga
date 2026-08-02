@@ -1,4 +1,4 @@
-[gd_scene load_steps=25 format=3 uid="uid://b1c2d3e4f5a6"]
+[gd_scene load_steps=26 format=3 uid="uid://b1c2d3e4f5a6"]
 
 [ext_resource type="Script" path="res://scripts/player/PlayerController.gd" id="1_controller"]
 [ext_resource type="Script" path="res://scripts/player/PlayerStateMachine.gd" id="2_state_machine"]
@@ -18,6 +18,7 @@
 [ext_resource type="PackedScene" path="res://assets/kaykit/animations/Animations/gltf/Rig_Medium/Rig_Medium_MovementBasic.glb" id="18_lib_move"]
 [ext_resource type="PackedScene" path="res://assets/kaykit/animations/Animations/gltf/Rig_Medium/Rig_Medium_CombatMelee.glb" id="19_lib_melee"]
 [ext_resource type="Script" path="res://scripts/player/HealthRegen.gd" id="16_regen"]
+[ext_resource type="PackedScene" path="res://assets/weapons/lute_bludgeon.glb" id="20_lute"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
 radius = 0.5
@@ -151,3 +152,12 @@ script = ExtResource("13_combat_state")
 
 [node name="HealthRegen" type="Node" parent="."]
 script = ExtResource("16_regen")
+
+[node name="WeaponSocket" type="BoneAttachment3D" parent="MeshInstance3D/CharacterVisual/Body/Rig_Medium/Skeleton3D" index="0"]
+bone_name = "handslot.r"
+bone_idx = 8
+
+; The model is authored lying along X with its origin at the centre of the body,
+; so it is rotated upright and offset until the grip sits in the hand.
+[node name="Lute" parent="MeshInstance3D/CharacterVisual/Body/Rig_Medium/Skeleton3D/WeaponSocket" instance=ExtResource("20_lute")]
+transform = Transform3D(0, -1.5, 0, 1.5, 0, 0, 0, 0, 1.5, 0, 0.42, 0)
