@@ -15,6 +15,7 @@
 [ext_resource type="PackedScene" path="res://scenes/enemies/HollowChoir.tscn" id="10_hollowchoir"]
 [ext_resource type="PackedScene" path="res://scenes/enemies/BoneBellRinger.tscn" id="10_bonebellringer"]
 [ext_resource type="PackedScene" path="res://scenes/enemies/DirgeCantor.tscn" id="12_cantor"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/Choirmaster.tscn" id="13_boss"]
 
 [sub_resource type="ProceduralSkyMaterial" id="Sky_night"]
 sky_top_color = Color(0.03, 0.04, 0.08, 1)
@@ -72,6 +73,8 @@ geometry_source_group_name = &"navmesh_source"
 
 [node name="ChurchGraveyard" type="Node3D"]
 script = ExtResource("1_level")
+boss_scene = ExtResource("13_boss")
+conducting_altar = NodePath("GreatAltar")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Env_graveyard")
@@ -97,6 +100,14 @@ script = ExtResource("3_church")
 [node name="ChurchBell" type="Node3D" parent="NavigationRegion3D/Church"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 12, -9)
 script = ExtResource("7_bell")
+
+; Not a Funeral Altar and not part of the network — it is scenery with a purpose,
+; the focal point the Choirmaster conducts toward and the wave rises around.
+[node name="GreatAltar" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -134)
+
+[node name="Mesh" parent="GreatAltar" instance=ExtResource("9_altarmesh")]
+transform = Transform3D(4.5, 0, 0, 0, 4.5, 0, 0, 0, 4.5, 0, 0, 0)
 
 [node name="AltarNetwork" type="Node" parent="."]
 script = ExtResource("6_network")

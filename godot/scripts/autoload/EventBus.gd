@@ -54,6 +54,13 @@ signal encore_full()
 ## Riff's restorative song: the third way to regain health, and the only one that
 ## costs anything. Announced so the HUD, the music and the audio can respond
 ## without any of them knowing where the song lives.
+## The Choirmaster's fight, announced in beats rather than as a health number, so
+## the HUD, the music and the camera can all respond to the same structure.
+signal boss_interlude_started(number: int, total: int)
+signal boss_interlude_finished(completed: int, total: int)
+signal boss_summon_raised(interlude: int)
+signal boss_defeated(boss_id: StringName)
+
 signal restorative_song_started(duration: float)
 signal restorative_song_completed(healed: float)
 signal restorative_song_interrupted()

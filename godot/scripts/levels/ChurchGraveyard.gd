@@ -10,6 +10,9 @@ extends Node3D
 @export var boss_spawn: Vector3 = Vector3(0.0, 0.0, -126.0)
 @export var player_spawn: Vector3 = Vector3(0.0, 1.0, 40.0)
 @export var return_scene: String = "res://scenes/levels/TavernHub.tscn"
+@export var boss_scene: PackedScene = null
+## What the Choirmaster turns to face during his conducted interludes.
+@export var conducting_altar: NodePath
 
 @onready var graveyard_builder: GraveyardBuilder = $NavigationRegion3D/GraveyardBuilder
 @onready var navigation_region: NavigationRegion3D = $NavigationRegion3D
@@ -79,6 +82,12 @@ func _nodes_to_settle() -> Array[Node3D]:
 				var marker := child as Marker3D
 				if marker != null:
 					found.append(marker)
+
+	# The great altar is scenery rather than a tracked altar, so it is in none of
+	# the groups above and would otherwise be left buried in the hillside.
+	var great_altar := get_node_or_null("GreatAltar") as Node3D
+	if great_altar != null:
+		found.append(great_altar)
 
 	var spawn_points: Node = get_node_or_null("SpawnPoints")
 	if spawn_points != null:
@@ -158,8 +167,36 @@ func _on_altar_cleansed(_altar_id: StringName, cleansed: int, total: int) -> voi
 		hud.call("show_temporary_center_message", "Altar restored  %d / %d" % [cleansed, total], 2.6)
 
 
-## The bell has tolled and the choir has answered. Phase 7 spawns the Choirmaster
-## here; until then the level reports itself complete so the loop can be walked
-## end to end.
+## The bell has tolled and the choir has answered.
 func _on_bell_finished() -> void:
-	print("[ChurchGraveyard] Bell finished. Boss cue at %s." % str(boss_spawn))
+	_summon_choirmaster()
+
+
+## Brings the Choirmaster into the courtyard.
+##
+## Spawned on the bell rather than placed in the scene so he is not stood in the
+## arena for the twelve minutes before he matters — idling, pathable, and
+## shootable through a fence by a player who wandered in early.
+func _summon_choirmaster() -> void:
+	if boss_scene == null:
+		push_warning("[ChurchGraveyard] No boss scene assigned; the bell leads nowhere.")
+		return
+
+	var boss := boss_scene.instantiate() as Node3D
+	if boss == null:
+		return
+
+	navigation_region.add_child(boss)
+	boss.global_position = Vector3(
+		boss_spawn.x,
+		graveyard_builder.height_at(Vector2(boss_spawn.x, boss_spawn.z)) + 0.5,
+		boss_spawn.z
+	)
+
+	# Pointed at the great altar so his interludes read as addressing the choir
+	# rather than staring into the middle distance.
+	var altar: Node3D = get_node_or_null(conducting_altar) as Node3D
+	if altar != null:
+		boss.set("altar_path", boss.get_path_to(altar))
+
+	print("[ChurchGraveyard] The Choirmaster takes the stand at %s." % str(boss.global_position))

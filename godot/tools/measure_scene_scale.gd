@@ -13,6 +13,7 @@ const SUBJECTS: Array[Dictionary] = [
 	{"label": "Tone Deaf", "path": "res://scenes/enemies/ToneDeaf.tscn"},
 	{"label": "Grave Crawler", "path": "res://scenes/enemies/GraveCrawler.tscn"},
 	{"label": "Hollow Choir", "path": "res://scenes/enemies/HollowChoir.tscn"},
+	{"label": "The Choirmaster", "path": "res://scenes/enemies/Choirmaster.tscn"},
 	{"label": "Bone Bell Ringer", "path": "res://scenes/enemies/BoneBellRinger.tscn"},
 ]
 

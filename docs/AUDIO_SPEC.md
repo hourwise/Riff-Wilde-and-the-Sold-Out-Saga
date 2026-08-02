@@ -100,6 +100,10 @@ Named exactly as listed. Mono is fine for all SFX; the engine positions them in 
 | `riff_strike_swing_01/02/03.ogg` | Three variations, heavy wooden whoosh. |
 | `riff_strike_impact_01/02/03.ogg` | Lute-bludgeon connecting. Wood + metal + a struck string. |
 | `riff_sing_blast.ogg` | The vocal wave. |
+| `choirmaster_conduct.ogg` | The Choirmaster turning to the great altar and raising his hands. The cue that he has become untouchable, so it must be unmistakable over a fight already in progress. Three times per fight. |
+| `choirmaster_summon.ogg` | One of the dead clawing its way up. Played per summon, up to eight in a wave, so it needs to stack without turning to mud. |
+| `choirmaster_cast.ogg` | A note leaving his hands. Heavier and lower than the Cantor's — he fires three at a time and should not read as a large Cantor. |
+| `choirmaster_stomp.ogg` | His close-range answer, when Riff gets inside his casting distance. |
 | `cantor_note.ogg` | The Dirge Cantor releasing a sung note at the player. A single sustained vowel, cold and thin — it is a telegraph as much as a sound, so it must carry across a noisy fight. |
 | `riff_song_restore.ogg` | The restorative song, sung between fights to heal. Roughly 1.8s and should read as a complete phrase rather than a loop, because it is cut off the moment Riff is hit — the break needs to be audible. Warm and unhurried, the opposite of the blast. |
 | `riff_dodge.ogg` | Cloth + boot scuff. |

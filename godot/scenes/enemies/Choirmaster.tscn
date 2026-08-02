@@ -1,0 +1,89 @@
+[gd_scene load_steps=23 format=3 uid="uid://choirmaster_boss"]
+
+[ext_resource type="Script" path="res://scripts/enemies/ChoirmasterAI.gd" id="1_ai"]
+[ext_resource type="Script" path="res://scripts/combat/Hurtbox.gd" id="2_hurtbox"]
+[ext_resource type="Script" path="res://scripts/enemies/EnemyStatusBars.gd" id="3_status_bars"]
+[ext_resource type="Script" path="res://scripts/enemies/EnemySteering.gd" id="4_steering"]
+[ext_resource type="Script" path="res://scripts/characters/CharacterVisual.gd" id="5_visual"]
+[ext_resource type="Resource" path="res://resources/enemies/choirmaster.tres" id="6_stats"]
+[ext_resource type="PackedScene" path="res://assets/characters/choirmaster/choirmaster.glb" id="7_model"]
+[ext_resource type="PackedScene" path="res://assets/characters/choirmaster/animations/Idle_13.glb" id="8_idle"]
+[ext_resource type="PackedScene" path="res://assets/characters/choirmaster/animations/Walking.glb" id="9_walk"]
+[ext_resource type="PackedScene" path="res://assets/characters/choirmaster/animations/mage_soell_cast.glb" id="10_cast"]
+[ext_resource type="PackedScene" path="res://assets/characters/choirmaster/animations/Charged_Spell_Cast.glb" id="11_cast2"]
+[ext_resource type="PackedScene" path="res://assets/characters/choirmaster/animations/Angry_Ground_Stomp_2.glb" id="12_stomp"]
+[ext_resource type="PackedScene" path="res://assets/characters/choirmaster/animations/Face_Punch_Reaction_1.glb" id="13_hit"]
+[ext_resource type="PackedScene" path="res://assets/characters/choirmaster/animations/Dead.glb" id="14_dead"]
+[ext_resource type="PackedScene" path="res://assets/characters/choirmaster/animations/Talk_Passionately.glb" id="15_conduct"]
+[ext_resource type="PackedScene" path="res://scenes/combat/SpectralNote.tscn" id="16_note"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/ToneDeaf.tscn" id="17_tonedeaf"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/GraveCrawler.tscn" id="18_crawler"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/HollowChoir.tscn" id="19_choir"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/BoneBellRinger.tscn" id="20_ringer"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/DirgeCantor.tscn" id="21_cantor"]
+
+[sub_resource type="CapsuleShape3D" id="Shape_body"]
+radius = 0.48
+height = 2.1
+
+[sub_resource type="BoxShape3D" id="Shape_hurtbox"]
+size = Vector3(1.4, 2.1, 1.4)
+
+[node name="Choirmaster" type="CharacterBody3D"]
+collision_layer = 4
+collision_mask = 3
+script = ExtResource("1_ai")
+stats = ExtResource("6_stats")
+visual_tint = Color(0.85, 0.82, 1.05, 1)
+projectile_scene = ExtResource("16_note")
+low_summons = Array[PackedScene]([ExtResource("17_tonedeaf"), ExtResource("18_crawler")])
+mid_summons = Array[PackedScene]([ExtResource("19_choir"), ExtResource("21_cantor"), ExtResource("20_ringer")])
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.05, 0)
+shape = SubResource("Shape_body")
+
+; His own rig and his own motion set, like Riff's. The conducting gesture is a
+; real animation from the pack rather than a repurposed idle: Talk_Passionately
+; is a two-handed address, which is what conducting a choir looks like.
+[node name="CharacterVisual" type="Node3D" parent="."]
+script = ExtResource("5_visual")
+animation_libraries = Array[PackedScene]([ExtResource("8_idle"), ExtResource("9_walk"), ExtResource("10_cast"), ExtResource("11_cast2"), ExtResource("12_stomp"), ExtResource("13_hit"), ExtResource("14_dead"), ExtResource("15_conduct")])
+idle_animation = &"Armature|Idle_13|baselayer"
+run_animation = &"Armature|walking_man|baselayer"
+attack_animations = Array[StringName]([&"Armature|mage_soell_cast|baselayer", &"Armature|Charged_Spell_Cast|baselayer", &"Armature|Angry_Ground_Stomp_2|baselayer"])
+hit_animation = &"Armature|Face_Punch_Reaction_1|baselayer"
+death_animation = &"Armature|Dead|baselayer"
+song_animation = &"Armature|Talk_Passionately|baselayer"
+model_yaw_degrees = 180.0
+run_speed_scale = 1.0
+procedural_mesh_path = NodePath(".")
+
+[node name="Model" parent="CharacterVisual" instance=ExtResource("7_model")]
+transform = Transform3D(1.22, 0, 0, 0, 1.22, 0, 0, 0, 1.22, 0, 0, 0)
+
+[node name="Hurtbox" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.05, 0)
+script = ExtResource("2_hurtbox")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
+shape = SubResource("Shape_hurtbox")
+
+[node name="LockOnPoint" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.3, 0)
+
+[node name="EnemyStatusBars" type="Node3D" parent="."]
+transform = Transform3D(1.8, 0, 0, 0, 1.8, 0, 0, 0, 1.8, 0, 2.6, 0)
+script = ExtResource("3_status_bars")
+bar_width = 1.2
+bar_height = 0.09
+
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
+path_desired_distance = 0.6
+target_desired_distance = 2.2
+radius = 0.48
+height = 2.1
+
+[node name="EnemySteering" type="Node" parent="."]
+script = ExtResource("4_steering")
+separation_radius = 2.2

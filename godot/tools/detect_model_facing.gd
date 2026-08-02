@@ -19,6 +19,7 @@ const SUBJECTS: Array[Dictionary] = [
 	{"label": "Hollow Choir", "path": "res://scenes/enemies/HollowChoir.tscn"},
 	{"label": "Bone Bell Ringer", "path": "res://scenes/enemies/BoneBellRinger.tscn"},
 	{"label": "Dirge Cantor", "path": "res://scenes/enemies/DirgeCantor.tscn"},
+	{"label": "The Choirmaster", "path": "res://scenes/enemies/Choirmaster.tscn"},
 ]
 
 var _wrong: int = 0
