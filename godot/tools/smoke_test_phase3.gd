@@ -14,6 +14,7 @@ const ROSTER: Array[Dictionary] = [
 	{"scene": "res://scenes/enemies/GraveCrawler.tscn", "stats": "res://resources/enemies/grave_crawler.tres"},
 	{"scene": "res://scenes/enemies/HollowChoir.tscn", "stats": "res://resources/enemies/hollow_choir.tres"},
 	{"scene": "res://scenes/enemies/BoneBellRinger.tscn", "stats": "res://resources/enemies/bone_bell_ringer.tres"},
+	{"scene": "res://scenes/enemies/DirgeCantor.tscn", "stats": "res://resources/enemies/dirge_cantor.tres"},
 ]
 
 var _failures: int = 0
@@ -40,6 +41,7 @@ func _initialize() -> void:
 	await _test_retreat_direction()
 	await _test_fall_recovery()
 	await _test_travels_without_zigzagging()
+	await _test_cantor_projectile()
 
 	print("\n=== %d/%d checks passed ===" % [_checks - _failures, _checks])
 	if _failures > 0:
@@ -471,3 +473,78 @@ func _test_travels_without_zigzagging() -> void:
 	for enemy: Node3D in group:
 		enemy.queue_free()
 	await physics_frame
+
+
+## The Dirge Cantor exists so that dodging has a reason to exist.
+##
+## Every other enemy attacks in melee, which the player can simply walk out of.
+## Checked for the three properties that make its note a dodge test rather than an
+## unavoidable tax: it is actually fired, it crosses ground slowly enough to be
+## read, and an invulnerable player takes nothing from it.
+func _test_cantor_projectile() -> void:
+	var cantor := (load("res://scenes/enemies/DirgeCantor.tscn") as PackedScene).instantiate() as Node3D
+	_root.add_child(cantor)
+	cantor.global_position = _player.global_position + Vector3(0.0, 0.0, -11.0)
+
+	# Long enough for the cooldown and a full wind-up.
+	var fired: Node = null
+	for i in range(320):
+		await physics_frame
+		fired = _first_projectile()
+		if fired != null:
+			break
+
+	if not _check(fired != null, "the Cantor fires a note"):
+		cantor.queue_free()
+		return
+
+	# Slow enough to see coming. A note that arrives faster than a reaction is not
+	# something the dodge can answer.
+	var speed: float = float(fired.get("speed"))
+	_check(speed > 6.0 and speed < 18.0, "the note travels at a readable speed (%.0f m/s)" % speed)
+
+	var start: Vector3 = (fired as Node3D).global_position
+	for i in range(10):
+		await physics_frame
+		if not is_instance_valid(fired):
+			break
+	if is_instance_valid(fired):
+		var moved: float = (fired as Node3D).global_position.distance_to(start)
+		_check(moved > 0.5, "the note actually travels (%.1fm in 10 frames)" % moved)
+
+	# It must land on the player when not dodged.
+	var stats: Node = _player.get_node_or_null("PlayerStats")
+	var before: float = float(stats.get("health"))
+	var landed: bool = false
+	for i in range(420):
+		await physics_frame
+		if float(stats.get("health")) < before:
+			landed = true
+			break
+	_check(landed, "a note that is not dodged does damage")
+
+	# And nothing at all through i-frames, which is the whole point. Riff has no
+	# Hurtbox node; the dodge window is a flag on the controller that PlayerStats
+	# reads, so that is what gets held open here.
+	_player.set("is_invulnerable", true)
+	var guarded: float = float(stats.get("health"))
+	for i in range(420):
+		await physics_frame
+		_player.set("is_invulnerable", true)
+		if float(stats.get("health")) < guarded:
+			break
+	_check(
+		is_equal_approx(float(stats.get("health")), guarded),
+		"a dodged note does nothing"
+	)
+	_player.set("is_invulnerable", false)
+
+	cantor.queue_free()
+	for projectile in get_nodes_in_group("enemy_projectiles"):
+		projectile.queue_free()
+	await physics_frame
+
+
+func _first_projectile() -> Node:
+	var found: Array[Node] = get_nodes_in_group("enemy_projectiles")
+	return found[0] if not found.is_empty() else null

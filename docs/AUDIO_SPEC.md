@@ -100,6 +100,7 @@ Named exactly as listed. Mono is fine for all SFX; the engine positions them in 
 | `riff_strike_swing_01/02/03.ogg` | Three variations, heavy wooden whoosh. |
 | `riff_strike_impact_01/02/03.ogg` | Lute-bludgeon connecting. Wood + metal + a struck string. |
 | `riff_sing_blast.ogg` | The vocal wave. |
+| `cantor_note.ogg` | The Dirge Cantor releasing a sung note at the player. A single sustained vowel, cold and thin — it is a telegraph as much as a sound, so it must carry across a noisy fight. |
 | `riff_song_restore.ogg` | The restorative song, sung between fights to heal. Roughly 1.8s and should read as a complete phrase rather than a loop, because it is cut off the moment Riff is hit — the break needs to be audible. Warm and unhurried, the opposite of the blast. |
 | `riff_dodge.ogg` | Cloth + boot scuff. |
 | `riff_combo_finisher.ogg` | Power chord stinger on combo completion. |

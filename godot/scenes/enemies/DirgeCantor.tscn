@@ -1,0 +1,76 @@
+[gd_scene load_steps=13 format=3 uid="uid://dirge_cantor_enemy"]
+
+[ext_resource type="Script" path="res://scripts/enemies/DirgeCantorAI.gd" id="1_ai"]
+[ext_resource type="Script" path="res://scripts/combat/Hurtbox.gd" id="2_hurtbox"]
+[ext_resource type="Script" path="res://scripts/enemies/EnemyStatusBars.gd" id="3_status_bars"]
+[ext_resource type="Script" path="res://scripts/enemies/EnemySteering.gd" id="4_steering"]
+[ext_resource type="Script" path="res://scripts/characters/CharacterVisual.gd" id="5_visual"]
+[ext_resource type="Resource" path="res://resources/enemies/dirge_cantor.tres" id="6_stats"]
+[ext_resource type="PackedScene" path="res://assets/kaykit/adventurers/Characters/gltf/Rogue_Hooded.glb" id="7_model"]
+[ext_resource type="PackedScene" path="res://assets/kaykit/animations/Animations/gltf/Rig_Medium/Rig_Medium_General.glb" id="8_lib_general"]
+[ext_resource type="PackedScene" path="res://assets/kaykit/animations/Animations/gltf/Rig_Medium/Rig_Medium_MovementBasic.glb" id="9_lib_move"]
+[ext_resource type="PackedScene" path="res://assets/kaykit/animations/Animations/gltf/Rig_Medium/Rig_Medium_CombatRanged.glb" id="10_lib_ranged"]
+[ext_resource type="PackedScene" path="res://scenes/combat/SpectralNote.tscn" id="11_note"]
+
+[sub_resource type="CapsuleShape3D" id="Shape_body"]
+radius = 0.34
+height = 2.0
+
+[sub_resource type="BoxShape3D" id="Shape_hurtbox"]
+size = Vector3(0.9, 2.0, 0.9)
+
+[node name="DirgeCantor" type="CharacterBody3D"]
+collision_layer = 4
+collision_mask = 3
+script = ExtResource("1_ai")
+stats = ExtResource("6_stats")
+visual_tint = Color(0.55, 0.72, 1.1, 1)
+projectile_scene = ExtResource("11_note")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
+shape = SubResource("Shape_body")
+
+; The model ships with no animations; motion comes from the shared Rig_Medium
+; libraries, merged on at load. Every character in the game draws from the same
+; motion set, which is what keeps them reading as one cast.
+[node name="CharacterVisual" type="Node3D" parent="."]
+script = ExtResource("5_visual")
+animation_libraries = Array[PackedScene]([ExtResource("8_lib_general"), ExtResource("9_lib_move"), ExtResource("10_lib_ranged")])
+idle_animation = &"Idle_A"
+run_animation = &"Walking_A"
+attack_animations = Array[StringName]([&"Ranged_Magic_Shoot"])
+hit_animation = &"Hit_A"
+death_animation = &"Death_A"
+model_yaw_degrees = 180.0
+run_speed_scale = 0.9
+procedural_mesh_path = NodePath(".")
+
+[node name="Model" parent="CharacterVisual" instance=ExtResource("7_model")]
+transform = Transform3D(0.99, 0, 0, 0, 0.99, 0, 0, 0, 0.99, 0, 0, 0)
+
+[node name="Hurtbox" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
+script = ExtResource("2_hurtbox")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
+shape = SubResource("Shape_hurtbox")
+
+[node name="LockOnPoint" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+
+[node name="EnemyStatusBars" type="Node3D" parent="."]
+transform = Transform3D(1.25, 0, 0, 0, 1.25, 0, 0, 0, 1.25, 0, 2.45, 0)
+script = ExtResource("3_status_bars")
+bar_width = 0.9
+bar_height = 0.07
+
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
+path_desired_distance = 0.5
+target_desired_distance = 1.6
+radius = 0.34
+height = 2.0
+
+[node name="EnemySteering" type="Node" parent="."]
+script = ExtResource("4_steering")
+separation_radius = 1.6

@@ -1,0 +1,43 @@
+[gd_scene load_steps=5 format=3 uid="uid://spectral_note"]
+
+[ext_resource type="Script" path="res://scripts/combat/SpectralNote.gd" id="1_note"]
+
+[sub_resource type="SphereShape3D" id="Shape_note"]
+radius = 0.32
+
+[sub_resource type="StandardMaterial3D" id="Mat_note"]
+transparency = 1
+blend_mode = 1
+shading_mode = 0
+albedo_color = Color(0.45, 0.8, 1, 0.85)
+emission_enabled = true
+emission = Color(0.45, 0.8, 1, 1)
+emission_energy_multiplier = 3.0
+
+[sub_resource type="SphereMesh" id="Mesh_note"]
+material = SubResource("Mat_note")
+radius = 0.26
+height = 0.52
+radial_segments = 10
+rings = 6
+
+; Layer 8 keeps notes off every existing query. The mask is world geometry (1) and
+; the player (2): it must break on a crypt wall so cover works, and it must not
+; collide with the enemies it is fired past.
+[node name="SpectralNote" type="Area3D"]
+collision_layer = 128
+collision_mask = 3
+monitoring = true
+script = ExtResource("1_note")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("Shape_note")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("Mesh_note")
+
+[node name="Glow" type="OmniLight3D" parent="."]
+light_color = Color(0.45, 0.8, 1, 1)
+light_energy = 2.2
+omni_range = 4.5
+shadow_enabled = false
