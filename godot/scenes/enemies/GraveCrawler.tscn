@@ -40,7 +40,7 @@ run_animation = &"Running_B"
 attack_animations = Array[StringName]([&"Melee_Dualwield_Attack_Slice", &"Melee_Dualwield_Attack_Stab"])
 hit_animation = &"Hit_A"
 death_animation = &"Death_A"
-model_yaw_degrees = 0.0
+model_yaw_degrees = 180.0
 run_speed_scale = 1.5
 procedural_mesh_path = NodePath(".")
 

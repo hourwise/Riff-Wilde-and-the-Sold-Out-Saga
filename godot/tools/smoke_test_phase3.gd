@@ -129,6 +129,13 @@ func _test_enemy_animations() -> void:
 				"%s clip names all resolve%s" % [enemy.name, "" if missing.is_empty() else " (missing: %s)" % str(missing)]
 			)
 
+		# Toe bones sit in front of the ankle on any humanoid rig, so foot-to-toes
+		# says which way the model faces. Asserted here because facing has been
+		# wrong repeatedly and was only ever caught by playing the game.
+		var forward: Vector3 = _measure_facing(enemy, visual)
+		if forward != Vector3.ZERO:
+			_check(forward.z < 0.0, "%s faces forward, not backwards" % enemy.name)
+
 		enemy.queue_free()
 		await physics_frame
 
@@ -315,6 +322,41 @@ func _test_fall_recovery() -> void:
 	enemy.queue_free()
 	await physics_frame
 
+
+
+## Which way a character actually faces, measured in its CharacterVisual's space
+## so the configured yaw correction is included. Godot's forward is -Z.
+func _measure_facing(character: Node3D, visual: Node3D) -> Vector3:
+	var skeleton: Skeleton3D = _find_node(character, "Skeleton3D") as Skeleton3D
+	if skeleton == null:
+		return Vector3.ZERO
+
+	var foot_index: int = -1
+	var toe_index: int = -1
+	for i in range(skeleton.get_bone_count()):
+		var bone: String = skeleton.get_bone_name(i).to_lower()
+		if toe_index < 0 and bone.contains("toe"):
+			toe_index = i
+		elif foot_index < 0 and bone.contains("foot") and not bone.contains("toe"):
+			foot_index = i
+
+	if foot_index < 0 or toe_index < 0:
+		return Vector3.ZERO
+
+	var to_visual: Transform3D = visual.global_transform.affine_inverse() * skeleton.global_transform
+	var forward: Vector3 = (to_visual * skeleton.get_bone_global_pose(toe_index)).origin 		- (to_visual * skeleton.get_bone_global_pose(foot_index)).origin
+	forward.y = 0.0
+	return forward.normalized() if forward.length_squared() > 0.0001 else Vector3.ZERO
+
+
+func _find_node(node: Node, type_name: String) -> Node:
+	if node.is_class(type_name):
+		return node
+	for child in node.get_children():
+		var found: Node = _find_node(child, type_name)
+		if found != null:
+			return found
+	return null
 
 # ── Helpers ──────────────────────────────────────────────────────
 

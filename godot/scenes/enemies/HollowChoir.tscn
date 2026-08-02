@@ -40,7 +40,7 @@ run_animation = &"Walking_A"
 attack_animations = Array[StringName]([&"Interact"])
 hit_animation = &"Hit_A"
 death_animation = &"Death_A"
-model_yaw_degrees = 0.0
+model_yaw_degrees = 180.0
 run_speed_scale = 0.9
 procedural_mesh_path = NodePath(".")
 
