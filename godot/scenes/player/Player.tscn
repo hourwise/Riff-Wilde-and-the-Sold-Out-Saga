@@ -66,6 +66,12 @@ rings = 1
 [node name="Player" type="CharacterBody3D"]
 collision_layer = 2
 collision_mask = 5
+; Stated rather than inherited. Godot defaults to 45 degrees, which sits between
+; the navigation agent's 38 and the authored banks' 48-to-58 — so the player could
+; scramble up ground the enemies could not path over, and "that way is closed"
+; stopped being a rule the level could rely on. Matched to navigation instead,
+; with a shade of slack so nothing the enemies can walk is barred to the player.
+floor_max_angle = 0.6981317
 script = ExtResource("1_controller")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]

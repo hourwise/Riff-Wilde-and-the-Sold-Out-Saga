@@ -1,5 +1,7 @@
 [gd_scene load_steps=13 format=3 uid="uid://church_graveyard"]
 
+[ext_resource type="Script" path="res://scripts/world/QuaverDrops.gd" id="14_drops"]
+[ext_resource type="PackedScene" path="res://scenes/world/Quaver.tscn" id="15_quaver"]
 [ext_resource type="Script" path="res://scripts/levels/ChurchGraveyard.gd" id="1_level"]
 [ext_resource type="Script" path="res://scripts/levels/GraveyardBuilder.gd" id="2_graveyard"]
 [ext_resource type="Script" path="res://scripts/levels/ChurchBuilder.gd" id="3_church"]
@@ -119,6 +121,12 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -134)
 
 [node name="Mesh" parent="GreatAltar" instance=ExtResource("9_altarmesh")]
 transform = Transform3D(4.5, 0, 0, 0, 4.5, 0, 0, 0, 4.5, 0, 0, 0)
+
+; Notes shaken loose by a kill. A listener on the EventBus, so the enemy
+; roster knows nothing about loot and a level that wants none omits this.
+[node name="QuaverDrops" type="Node" parent="."]
+script = ExtResource("14_drops")
+quaver_scene = ExtResource("15_quaver")
 
 [node name="AltarNetwork" type="Node" parent="."]
 script = ExtResource("6_network")

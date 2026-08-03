@@ -61,6 +61,10 @@ signal boss_interlude_finished(completed: int, total: int)
 signal boss_summon_raised(interlude: int)
 signal boss_defeated(boss_id: StringName)
 
+## A note shaken loose by a kill and walked over. Announced so the HUD can show
+## what it paid without the pickup knowing the HUD exists.
+signal quaver_collected(healed: float, breath: float)
+
 signal restorative_song_started(duration: float)
 signal restorative_song_completed(healed: float)
 signal restorative_song_interrupted()

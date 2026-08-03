@@ -46,6 +46,7 @@ const VARIATIONS: Dictionary = {
 	&"footstep_stone": 4,
 	&"footstep_grass": 4,
 	&"tonedeaf_groan": 2,
+	&"quaver_collect": 1,
 }
 
 var _players_2d: Array[AudioStreamPlayer] = []

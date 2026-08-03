@@ -15,6 +15,11 @@ script = ExtResource("1_rig_script")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.35, 0)
 collision_mask = 1
 spring_length = 3.1
+; The arm stops this far short of whatever it hits. Godot's default is a
+; centimetre, which parks the camera flush against a hillside — close enough that
+; its near plane sits inside the ground, and terrain has no back faces, so the
+; hill turns transparent and you see through the world.
+margin = 0.4
 
 ; SpringArm3D repositions every direct Node3D child each frame. ShakePivot absorbs
 ; that, leaving the camera's own local transform free for shake to use. Do not

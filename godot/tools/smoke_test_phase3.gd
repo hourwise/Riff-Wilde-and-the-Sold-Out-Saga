@@ -42,6 +42,7 @@ func _initialize() -> void:
 	await _test_fall_recovery()
 	await _test_travels_without_zigzagging()
 	await _test_cantor_projectile()
+	await _test_quaver_drops()
 
 	print("\n=== %d/%d checks passed ===" % [_checks - _failures, _checks])
 	if _failures > 0:
@@ -548,3 +549,115 @@ func _test_cantor_projectile() -> void:
 func _first_projectile() -> Node:
 	var found: Array[Node] = get_nodes_in_group("enemy_projectiles")
 	return found[0] if not found.is_empty() else null
+
+
+## Notes shaken loose by a kill.
+##
+## These exist because of how the fight actually goes wrong: one enemy is no
+## trouble, four at once is, and the only answers were to run or to die. Lowering
+## enemy damage would fix that by removing the threat. A drop rewards the opposite
+## response — killing something buys the means to keep killing — so a swarm
+## becomes survivable by fighting through it.
+##
+## The parts that can fail quietly are the ones checked: that anything drops at
+## all, that walking over it actually pays, and that a drop at full health is not
+## simply thrown away.
+func _test_quaver_drops() -> void:
+	# Loaded by path, not by class name. Naming QuaverDrops here would force it to
+	# compile alongside this script — which happens before autoloads register — and
+	# its EventBus references would fail to resolve, leaving a script that cannot
+	# be instantiated at all.
+	var drops: Node = (load("res://scripts/world/QuaverDrops.gd") as GDScript).new()
+	drops.set("quaver_scene", load("res://scenes/world/Quaver.tscn"))
+	_root.add_child(drops)
+	await physics_frame
+
+	var stats: Node = _player.get_node_or_null("PlayerStats")
+	if not _check(stats != null, "player stats available for the drop check"):
+		return
+
+	# Killed well away from the player, so nothing is collected before it is counted.
+	var enemy := (load("res://scenes/enemies/ToneDeaf.tscn") as PackedScene).instantiate() as Node3D
+	_root.add_child(enemy)
+	enemy.global_position = _player.global_position + Vector3(40.0, 1.0, 0.0)
+	for i in range(6):
+		await physics_frame
+
+	enemy.call("die")
+	await physics_frame
+	_check(_quavers().size() >= 1, "an enemy drops a note when it dies (%d)" % _quavers().size())
+
+	# Wounded, then walked over one.
+	var max_health: float = float(stats.get("max_health"))
+	stats.call("set_health", max_health * 0.4)
+	var before: float = float(stats.get("health"))
+
+	var note: Node3D = _quavers()[0] as Node3D
+	note.global_position = _player.global_position + Vector3(0.0, 0.7, 0.0)
+	for i in range(60):
+		await physics_frame
+		if not is_instance_valid(note):
+			break
+
+	_check(float(stats.get("health")) > before, "walking over one restores health (+%.1f)" % (float(stats.get("health")) - before))
+	_check(not is_instance_valid(note), "and the note is spent")
+
+	# At full health the drop pays breath instead of being wasted.
+	_clear_quavers()
+	stats.call("set_health", max_health)
+	stats.call("set_breath", 10.0)
+	var breath_before: float = float(stats.get("breath"))
+
+	var second := (load("res://scenes/enemies/ToneDeaf.tscn") as PackedScene).instantiate() as Node3D
+	_root.add_child(second)
+	second.global_position = _player.global_position + Vector3(40.0, 1.0, 0.0)
+	for i in range(6):
+		await physics_frame
+	second.call("die")
+	await physics_frame
+
+	var full_note: Node3D = _quavers()[0] as Node3D if not _quavers().is_empty() else null
+	if _check(full_note != null, "a note drops from the second kill"):
+		full_note.global_position = _player.global_position + Vector3(0.0, 0.7, 0.0)
+		for i in range(60):
+			await physics_frame
+			if not is_instance_valid(full_note):
+				break
+		_check(
+			float(stats.get("breath")) > breath_before,
+			"a note collected at full health pays breath instead (+%.1f)" % (float(stats.get("breath")) - breath_before)
+		)
+		_check(
+			is_equal_approx(float(stats.get("health")), max_health),
+			"and does not overheal"
+		)
+
+	# Heavier enemies are worth more. The heavies are what turn a fight dangerous,
+	# so putting one down should visibly buy the player their footing back.
+	_clear_quavers()
+	var heavy := (load("res://scenes/enemies/BoneBellRinger.tscn") as PackedScene).instantiate() as Node3D
+	_root.add_child(heavy)
+	heavy.global_position = _player.global_position + Vector3(40.0, 1.0, 0.0)
+	for i in range(6):
+		await physics_frame
+	heavy.call("die")
+	await physics_frame
+	_check(_quavers().size() >= 2, "a heavy is worth more than one note (%d)" % _quavers().size())
+
+	_clear_quavers()
+	drops.queue_free()
+	await physics_frame
+
+
+func _quavers() -> Array[Node]:
+	var alive: Array[Node] = []
+	for node in get_nodes_in_group("quavers"):
+		if is_instance_valid(node):
+			alive.append(node)
+	return alive
+
+
+func _clear_quavers() -> void:
+	for node in get_nodes_in_group("quavers"):
+		if is_instance_valid(node):
+			node.queue_free()

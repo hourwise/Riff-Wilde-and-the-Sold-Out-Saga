@@ -387,6 +387,12 @@ func _build_mesh() -> void:
 	# earth and stone reads better than one flat albedo anyway.
 	material.vertex_color_use_as_albedo = true
 	material.roughness = 1.0
+	# Drawn from both sides. The camera margin should keep the view out of the
+	# ground, but a single-sided terrain punishes any failure to do so by making
+	# the whole hillside vanish and showing the skybox through it. Back faces on a
+	# heightfield cost almost nothing and turn that failure into, at worst, a dark
+	# surface.
+	material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	material.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
 	mesh.surface_set_material(0, material)
 

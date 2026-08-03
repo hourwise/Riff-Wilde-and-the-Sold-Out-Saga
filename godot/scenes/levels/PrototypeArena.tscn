@@ -1,5 +1,7 @@
 [gd_scene load_steps=18 format=3 uid="uid://d1f2a3b4c5d6"]
 
+[ext_resource type="Script" path="res://scripts/world/QuaverDrops.gd" id="11_drops"]
+[ext_resource type="PackedScene" path="res://scenes/world/Quaver.tscn" id="12_quaver"]
 [ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://scenes/enemies/TrainingDummy.tscn" id="2_dummy"]
 [ext_resource type="PackedScene" path="res://scenes/enemies/ToneDeaf.tscn" id="3_tone_deaf"]
@@ -96,6 +98,12 @@ size = Vector3(8, 2, 8)
 transform = Transform3D(0.965926, -0.258819, 0, 0.258819, 0.965926, 0, 0, 0, 1, 10, 0.5, 2)
 use_collision = true
 size = Vector3(8, 1, 4)
+
+; Notes shaken loose by a kill. A listener on the EventBus, so the enemy
+; roster knows nothing about loot and a level that wants none omits this.
+[node name="QuaverDrops" type="Node" parent="."]
+script = ExtResource("11_drops")
+quaver_scene = ExtResource("12_quaver")
 
 [node name="Player" parent="." instance=ExtResource("1_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)

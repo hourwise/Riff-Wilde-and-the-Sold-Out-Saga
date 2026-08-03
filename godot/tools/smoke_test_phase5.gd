@@ -62,6 +62,8 @@ func _initialize() -> void:
 	_test_navigation()
 	_test_clearings()
 	_test_content_volume()
+	await _test_terrain_is_solid()
+	await _test_banks_stop_the_player()
 	await _test_patrols()
 	await _test_altar_gate()
 
@@ -164,6 +166,112 @@ func _test_navigation() -> void:
 		)
 
 	_test_terrain_gates_access(map, builder)
+
+
+## The ground must actually stop things.
+##
+## The terrain is generated, and its collision is a separate object from its mesh:
+## a heightfield shape built from the same samples. Nothing connects them except
+## the code that builds both, so they can disagree silently — the hills render,
+## the navigation bakes over them, every other check passes, and the player walks
+## straight through a hillside.
+##
+## Raycast rather than dropped, because a dropped body that finds no floor just
+## falls forever and the test would have to guess how long to wait.
+func _test_terrain_is_solid() -> void:
+	var builder: Node = _level.get_node_or_null("NavigationRegion3D/GraveyardBuilder")
+	if builder == null or not builder.has_method("height_at"):
+		return
+
+	var space: PhysicsDirectSpaceState3D = (_level as Node3D).get_world_3d().direct_space_state
+	var worst: float = 0.0
+	var missed: Array[String] = []
+
+	for probe: Dictionary in [
+		{"at": Vector2(0.0, 40.0), "what": "the gate"},
+		{"at": Vector2(0.0, 0.0), "what": "the graveyard altar"},
+		{"at": Vector2(44.5, -20.0), "what": "the Weeping Hollow bank"},
+		{"at": Vector2(-52.0, -68.0), "what": "the mausoleum slope"},
+		{"at": Vector2(64.0, -6.0), "what": "the hollow floor"},
+		{"at": Vector2(0.0, -113.0), "what": "the church causeway"},
+		{"at": Vector2(56.2, -65.8), "what": "the maze plateau"},
+	]:
+		var here: Vector2 = probe["at"]
+		var expected: float = float(builder.call("height_at", here))
+
+		var from := Vector3(here.x, expected + 40.0, here.y)
+		var to := Vector3(here.x, expected - 40.0, here.y)
+		var query := PhysicsRayQueryParameters3D.create(from, to)
+		query.collision_mask = 1
+		var hit: Dictionary = space.intersect_ray(query)
+
+		if hit.is_empty():
+			missed.append(String(probe["what"]))
+			continue
+
+		var difference: float = absf(float((hit["position"] as Vector3).y) - expected)
+		worst = maxf(worst, difference)
+
+	_check(
+		missed.is_empty(),
+		"the ground is solid everywhere%s" % ("" if missed.is_empty() else " (fell through at: %s)" % ", ".join(missed))
+	)
+	# The collision heightfield and the visible mesh are built from the same
+	# samples, so they should agree to well within a step height. Drifting apart
+	# is how a character ends up hovering or wading.
+	_check(
+		worst < 0.35,
+		"collision matches the visible ground (worst mismatch %.2fm)" % worst
+	)
+
+
+## The banks must stop the player too, not only the enemies.
+##
+## Navigation refuses anything over 38 degrees, so the ridges already gate where
+## enemies can go. The player is a CharacterBody3D and obeys its own slope limit,
+## which is inherited from Godot unless stated — and Godot's default of 45 degrees
+## sits between navigation's 38 and the banks' 48-to-58. That gap let the player
+## scramble up ground nothing could follow them onto, and made "that way is
+## closed" a rule the level could not rely on.
+func _test_banks_stop_the_player() -> void:
+	var players: Array[Node] = get_nodes_in_group("player")
+	if players.is_empty():
+		return
+
+	var builder: Node = _level.get_node_or_null("NavigationRegion3D/GraveyardBuilder")
+	if builder == null:
+		return
+
+	var player := players[0] as CharacterBody3D
+	var resume: Vector3 = player.global_position
+
+	# At the foot of the Weeping Hollow bank, facing straight up it.
+	var foot := Vector2(52.0, -18.0)
+	var uphill := Vector3(-1.0, 0.0, 0.0)
+	player.global_position = Vector3(
+		foot.x, float(builder.call("height_at", foot)) + 0.5, foot.y
+	)
+	for i in range(10):
+		await physics_frame
+
+	var start: float = player.global_position.y
+
+	# Driven directly rather than through input, so the test measures the body's
+	# response to the slope and not the state machine's response to a key.
+	for i in range(120):
+		player.velocity.x = uphill.x * 6.0
+		player.velocity.z = uphill.z * 6.0
+		player.move_and_slide()
+		await physics_frame
+
+	var climbed: float = player.global_position.y - start
+	_check(
+		climbed < 1.5,
+		"the player cannot walk up a bank (climbed %.2fm in two seconds)" % climbed
+	)
+
+	player.global_position = resume
+	await physics_frame
 
 
 ## The terrain has to do more than look uneven: some ground must be genuinely
