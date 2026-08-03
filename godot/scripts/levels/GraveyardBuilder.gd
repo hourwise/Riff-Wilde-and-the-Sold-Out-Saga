@@ -248,6 +248,7 @@ var _batch_group: String = "world"
 ## node to inspect afterwards, and the layout still has to be verifiable.
 var _placements: Array[Dictionary] = []
 var _terrain: GraveyardTerrain = null
+var _height_cache: Dictionary = {}
 
 
 func _ready() -> void:
@@ -304,10 +305,13 @@ func get_terrain() -> GraveyardTerrain:
 	return _terrain
 
 
-## Every scenery piece placed, as {piece: String, at: Vector2}.
+## Every scenery piece placed, as {piece, at, height}.
 ##
-## Most scenery is drawn from a MultiMesh and has no node of its own, so this is
-## the only way to check afterwards where anything actually ended up.
+## Height is recorded here rather than read back from the MultiMesh afterwards.
+## Under the headless rendering server, MultiMesh instance transforms are written
+## into a no-op and read back as identity — every piece appears unscaled at the
+## world origin, including the ones plainly rendering correctly on screen. Any
+## check built on reading them back measures the dummy server, not the level.
 func get_placements() -> Array[Dictionary]:
 	return _placements.duplicate()
 
@@ -374,7 +378,7 @@ func _build_terrain() -> void:
 	var apron_plane := PlaneMesh.new()
 	apron_plane.size = ground_size + Vector2.ONE * forest_depth * 2.0
 	var apron_material := StandardMaterial3D.new()
-	apron_material.albedo_color = Color(0.10, 0.10, 0.08)
+	apron_material.albedo_color = Color(0.18, 0.19, 0.14)
 	apron_material.roughness = 1.0
 	apron_plane.material = apron_material
 	apron.mesh = apron_plane
@@ -793,7 +797,9 @@ func _scatter_ground_cover() -> void:
 
 	# A jittered grid rather than random points: random scattering clumps, and
 	# clumped ground cover leaves bald patches that read as missing geometry.
-	var spacing: float = 3.4
+	# Tightened once the pieces were the right size. At the old spacing, cover
+	# sized correctly leaves most of the ground bare between tufts.
+	var spacing: float = 1.7
 	var columns: int = int(area.size.x / spacing)
 	var rows: int = int(area.size.y / spacing)
 	var placed: int = 0
@@ -819,20 +825,20 @@ func _scatter_ground_cover() -> void:
 
 			if steepness > 0.45:
 				# Bare banks: loose stone only, and not much of it.
-				if roll < 0.25:
-					_batch(STONES[_rng.randi_range(0, STONES.size() - 1)], point, _rng.randf_range(0.0, TAU), _rng.randf_range(0.5, 1.1))
+				if roll < 0.3:
+					_scatter_one(STONES, point, 0.12, 0.34)
 					placed += 1
 				continue
 
-			if roll < 0.58:
-				_batch(GRASS[_rng.randi_range(0, GRASS.size() - 1)], point, _rng.randf_range(0.0, TAU), _rng.randf_range(0.7, 1.5))
-			elif roll < 0.74:
-				_batch(STONES[_rng.randi_range(0, STONES.size() - 1)], point, _rng.randf_range(0.0, TAU), _rng.randf_range(0.4, 0.9))
-			elif roll < 0.84:
-				_batch(UNDERGROWTH[_rng.randi_range(0, UNDERGROWTH.size() - 1)], point, _rng.randf_range(0.0, TAU), _rng.randf_range(0.6, 1.2))
-			elif roll < 0.88 and district == &"bonefield":
+			if roll < 0.62:
+				_scatter_one(GRASS, point, 0.16, 0.34)
+			elif roll < 0.78:
+				_scatter_one(STONES, point, 0.10, 0.30)
+			elif roll < 0.88:
+				_scatter_one(UNDERGROWTH, point, 0.30, 0.62)
+			elif roll < 0.93 and district == &"bonefield":
 				# The Bone Field is named for what is lying in it.
-				_batch(BONES[_rng.randi_range(0, BONES.size() - 1)], point, _rng.randf_range(0.0, TAU), _rng.randf_range(0.6, 1.0))
+				_scatter_one(BONES, point, 0.14, 0.28)
 			else:
 				continue
 
@@ -840,6 +846,55 @@ func _scatter_ground_cover() -> void:
 
 	_batch_group = "world"
 	print("[GraveyardBuilder] Ground cover: %d pieces." % placed)
+
+
+## Places one piece from a pool at a height in metres.
+func _scatter_one(pool: Array, point: Vector2, lowest: float, highest: float) -> void:
+	var piece: String = pool[_rng.randi_range(0, pool.size() - 1)]
+	_batch(
+		piece,
+		point,
+		_rng.randf_range(0.0, TAU),
+		_scale_for_height(piece, _rng.randf_range(lowest, highest))
+	)
+
+
+## The extra_scale that makes a piece stand a given height in world metres.
+##
+## Ground cover was sized by multiplier, on the assumption that the forest pack
+## was authored at the same scale as the graveyard kit. It is not: a grass tuft is
+## 0.919 units tall against a gravestone's 0.915, so "a bit smaller than a
+## headstone" produced grass nearly three metres high, taller than the trees it
+## was meant to grow under.
+##
+## Saying how tall something should be and deriving the number is the same fix the
+## weapon socket needed, for the same reason — a multiplier is only meaningful
+## relative to an authored scale nobody wrote down.
+func _scale_for_height(piece: String, metres: float) -> float:
+	var height: float = _piece_height(piece)
+	if height <= 0.0001:
+		return 1.0
+	return metres / (height * KIT_SCALE)
+
+
+## Height of a kit piece in its own units, measured once and remembered.
+func _piece_height(piece: String) -> float:
+	if _height_cache.has(piece):
+		return float(_height_cache[piece])
+
+	var bounds := AABB()
+	var first: bool = true
+	for part: Dictionary in _meshes_of(piece):
+		var mesh: Mesh = part["mesh"]
+		if mesh == null:
+			continue
+		var box: AABB = (part["transform"] as Transform3D) * mesh.get_aabb()
+		bounds = box if first else bounds.merge(box)
+		first = false
+
+	var height: float = 0.0 if first else bounds.size.y
+	_height_cache[piece] = height
+	return height
 
 
 ## Whether a point lies on a road surface. Ground cover keeps off the roads but is
@@ -966,7 +1021,11 @@ func _batch(piece: String, point: Vector2, yaw: float, extra_scale: float = 1.0)
 	var transform := Transform3D(Basis.IDENTITY, Vector3(point.x, height_at(point), point.y))
 	transform.basis = Basis(Vector3.UP, yaw).scaled(Vector3.ONE * KIT_SCALE * extra_scale)
 	(_batches[key] as Array).append(transform)
-	_placements.append({"piece": piece, "at": point})
+	_placements.append({
+		"piece": piece,
+		"at": point,
+		"height": _piece_height(piece) * KIT_SCALE * extra_scale,
+	})
 
 
 ## Turns the recorded batches into one MultiMeshInstance3D per mesh per district.
@@ -1073,7 +1132,11 @@ func _place(
 	if node == null:
 		return null
 
-	_placements.append({"piece": piece, "at": point})
+	_placements.append({
+		"piece": piece,
+		"at": point,
+		"height": _piece_height(piece) * KIT_SCALE * extra_scale,
+	})
 
 	var host: Node3D = parent if parent != null else _scenery
 	host.add_child(node)

@@ -406,6 +406,27 @@ func _test_delivered_music() -> void:
 
 	_check(bool(director.get("_combat_is_single")), "combat runs as one arrangement")
 
+	# That a stream loads says nothing about whether anything is audible. The
+	# exploration bed was faded up on a player that had never been started —
+	# no error, no warning, and the level was silent while every check here passed.
+	director.call("play_exploration")
+	await process_frame
+	var ambient: AudioStreamPlayer = director.get("_ambient_player")
+	_check(ambient != null and ambient.playing, "play_exploration actually starts the music")
+
+	director.call("_on_combat_started")
+	await process_frame
+	var combat: AudioStreamPlayer = (director.get("_combat_players") as Array)[0]
+	_check(combat != null and combat.playing, "entering combat actually starts the combat track")
+
+	director.call("play_boss", 0)
+	await process_frame
+	var boss: AudioStreamPlayer = (director.get("_boss_players") as Array)[0]
+	_check(boss != null and boss.playing, "the boss arrangement actually starts")
+
+	director.call("stop_all", 0.05)
+	await process_frame
+
 	# The Encore has to change how it sounds, or the meter is decoration.
 	var bus: int = AudioServer.get_bus_index("MusicCombat")
 	if not _check(bus >= 0, "the combat music bus exists"):

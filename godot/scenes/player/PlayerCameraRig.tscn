@@ -7,10 +7,14 @@ script = ExtResource("1_rig_script")
 
 ; Pivot sits above the character's head, not level with it. At head height the
 ; camera looks through him and the model occludes whatever he is fighting.
+;
+; Both figures are proportional to the character, and both were inherited from a
+; 2 m placeholder. Against Riff at 1.25 m they framed him as a distant speck with
+; a great deal of empty ground around him.
 [node name="SpringArm3D" type="SpringArm3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.05, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.35, 0)
 collision_mask = 1
-spring_length = 4.6
+spring_length = 3.1
 
 ; SpringArm3D repositions every direct Node3D child each frame. ShakePivot absorbs
 ; that, leaving the camera's own local transform free for shake to use. Do not

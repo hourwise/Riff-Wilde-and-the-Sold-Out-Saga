@@ -76,6 +76,7 @@ func _test_player_visual(player: Node3D) -> void:
 	await _check_clips_move_bones(player, visual)
 
 	await _check_stands_on_the_floor(player, visual)
+	await _check_camera_framing_is_proportional(player)
 	_check_weapon(player)
 
 
@@ -137,6 +138,45 @@ func _bone_spread(skeleton: Skeleton3D) -> float:
 		lowest = minf(lowest, y)
 		highest = maxf(highest, y)
 	return 0.0 if is_inf(lowest) else highest - lowest
+
+
+## How much of the frame Riff actually occupies.
+##
+## The camera rig's pivot height and arm length are both proportional to the
+## character, and both were inherited from a two-metre placeholder. Against Riff
+## at 1.25 m that framed him as a speck in the middle of a lot of empty ground.
+##
+## Asserted as a share of the screen rather than as an arm length in metres,
+## because that is the thing anyone actually complains about — and it stays
+## meaningful if the character is resized again.
+func _check_camera_framing_is_proportional(player: Node3D) -> void:
+	var camera: Camera3D = _find_node(player, "Camera3D") as Camera3D
+	if not _check(camera != null, "the player has a camera"):
+		return
+
+	var skeleton: Skeleton3D = _find_node(player, "Skeleton3D") as Skeleton3D
+	if skeleton == null:
+		return
+
+	for i in range(10):
+		await process_frame
+
+	var lowest: float = _lowest_bone(skeleton)
+	var height: float = _bone_spread(skeleton)
+	if height <= 0.01:
+		return
+
+	var feet: Vector2 = camera.unproject_position(Vector3(player.global_position.x, lowest, player.global_position.z))
+	var head: Vector2 = camera.unproject_position(Vector3(player.global_position.x, lowest + height, player.global_position.z))
+	var viewport_height: float = float(camera.get_viewport().get_visible_rect().size.y)
+	if viewport_height <= 0.0:
+		return
+
+	var share: float = absf(head.y - feet.y) / viewport_height
+	_check(
+		share > 0.16 and share < 0.55,
+		"Riff fills a readable share of the frame (%.0f%% of screen height)" % (share * 100.0)
+	)
 
 
 ## The lute was invisible, not missing: this rig's armature is scaled to about

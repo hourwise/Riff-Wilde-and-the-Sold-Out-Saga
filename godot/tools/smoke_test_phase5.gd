@@ -289,6 +289,38 @@ func _test_content_volume() -> void:
 	var dead_ends: Array = builder.call("get_dead_ends")
 	_check(dead_ends.size() >= 4, "the crypt maze has dead ends (%d)" % dead_ends.size())
 
+	var placements: Array = builder.call("get_placements")
+
+	# Ground cover has to be ground-sized. It was sized by multiplier on the
+	# assumption that the forest pack matched the graveyard kit's scale; it does
+	# not, and grass came out nearly three metres tall — taller than the trees it
+	# grows under.
+	#
+	# Measured from the builder's own record, not by reading the MultiMesh back.
+	# Headless uses the dummy rendering server, where instance transforms are
+	# written into a no-op and read back as identity: every piece reports as
+	# unscaled at the world origin, which looks exactly like this bug and is not.
+	var tallest: float = 0.0
+	var tallest_piece: String = ""
+	var cover: int = 0
+	for placement: Dictionary in placements:
+		var piece: String = placement["piece"]
+		if not (piece.begins_with("forest/") or piece.begins_with("halloween/")):
+			continue
+		cover += 1
+		var height: float = float(placement.get("height", 0.0))
+		if height > tallest:
+			tallest = height
+			tallest_piece = piece
+
+	_check(cover > 2000, "the ground is covered (%d pieces)" % cover)
+	# Riff is 1.25 m. Undergrowth may reach his knee; nothing here should reach his
+	# waist, and certainly not tower over him.
+	_check(
+		tallest > 0.0 and tallest < 0.8,
+		"ground cover is ground-sized (tallest %.2fm, %s)" % [tallest, tallest_piece]
+	)
+
 	var forest: Node = builder.get_node_or_null("ForestWall") as MultiMeshInstance3D
 	var trees: int = (forest as MultiMeshInstance3D).multimesh.instance_count if forest != null else 0
 	_check(trees >= 3000, "a forest thick enough to hide the horizon (%d trees)" % trees)

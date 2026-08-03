@@ -436,9 +436,14 @@ func _build_collision() -> void:
 ## Grass on the flat, worn earth on the slopes, bare stone on the banks. Blended
 ## by steepness, so the transition follows the shape of the land.
 func _ground_colour(point: Vector2, normal: Vector3) -> Color:
-	const GRASS := Color(0.17, 0.21, 0.13)
-	const EARTH := Color(0.19, 0.15, 0.11)
-	const STONE := Color(0.24, 0.24, 0.26)
+	# Lifted well above what "night" suggests. The scene is lit by a 0.3-energy
+	# moon and 0.28 ambient, so ground authored at the brightness of actual night
+	# soil renders as flat black — the roads read as the only surface in the level
+	# and everything else appears to float on a void. Dark comes from the lighting;
+	# the albedo only has to survive it.
+	const GRASS := Color(0.30, 0.35, 0.23)
+	const EARTH := Color(0.34, 0.28, 0.20)
+	const STONE := Color(0.40, 0.40, 0.43)
 
 	var flatness: float = clampf(normal.dot(Vector3.UP), 0.0, 1.0)
 	var steepness: float = 1.0 - flatness
@@ -446,8 +451,13 @@ func _ground_colour(point: Vector2, normal: Vector3) -> Color:
 	var colour: Color = GRASS.lerp(EARTH, smoothstep(0.06, 0.26, steepness))
 	colour = colour.lerp(STONE, smoothstep(0.3, 0.55, steepness))
 
-	# A little variation so a hillside is not one flat sheet of colour.
-	var mottle: float = _detail.get_noise_2d(point.x * 2.0, point.y * 2.0) * 0.05
+	# Two scales of variation. The fine one breaks up a hillside so it is not one
+	# flat sheet; the broad one drifts between grassier and barer ground across
+	# tens of metres, which is what stops a large field reading as a painted plane.
+	var mottle: float = _detail.get_noise_2d(point.x * 2.0, point.y * 2.0) * 0.06
+	var patch: float = _hills.get_noise_2d(point.x * 3.1 + 500.0, point.y * 3.1 - 500.0)
+	colour = colour.lerp(EARTH, clampf(patch * 0.5 + 0.25, 0.0, 0.55))
+
 	return Color(
 		clampf(colour.r + mottle, 0.0, 1.0),
 		clampf(colour.g + mottle, 0.0, 1.0),

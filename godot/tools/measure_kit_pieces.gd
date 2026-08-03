@@ -19,7 +19,18 @@ func _initialize() -> void:
 
 
 func _measure(piece: String) -> void:
+	# Pack-qualified names, matching GraveyardBuilder: "forest/Grass_1_A_Color1".
 	var path: String = "%s/%s.glb" % [KIT, piece]
+	if piece.contains("/"):
+		var pack: String = piece.substr(0, piece.find("/"))
+		var name: String = piece.substr(piece.find("/") + 1)
+		var directories: Dictionary = {
+			"forest": "res://assets/kaykit/forest/Assets/gltf",
+			"halloween": "res://assets/kaykit/halloween/Assets/gltf",
+		}
+		if directories.has(pack):
+			path = "%s/%s.gltf" % [directories[pack], name]
+
 	var packed := ResourceLoader.load(path) as PackedScene
 	if packed == null:
 		print("%-28s  not found" % piece)

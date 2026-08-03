@@ -132,7 +132,7 @@ func play_exploration() -> void:
 	if not _combat_is_single:
 		_start_group(_combat_players)
 	_apply_combat_layers(false)
-	_fade_to(_ambient_player, 0.0, CROSSFADE_SECONDS)
+	_raise(_ambient_player, CROSSFADE_SECONDS)
 
 
 func play_tavern() -> void:
@@ -221,7 +221,7 @@ func _on_boss_interlude_finished(completed: int, _total: int) -> void:
 func _on_boss_defeated(_boss_id: StringName) -> void:
 	_boss_active = false
 	_fade_group(_boss_players, SILENT_DB, AMBIENT_RETURN_SECONDS)
-	_fade_to(_ambient_player, 0.0, AMBIENT_RETURN_SECONDS)
+	_raise(_ambient_player, AMBIENT_RETURN_SECONDS)
 
 
 func _on_game_state_changed(_previous: int, current: int) -> void:
@@ -237,7 +237,7 @@ func _leave_combat() -> void:
 	_in_combat = false
 	_apply_combat_layers(false)
 	if not _boss_active:
-		_fade_to(_ambient_player, 0.0, AMBIENT_RETURN_SECONDS)
+		_raise(_ambient_player, AMBIENT_RETURN_SECONDS)
 
 
 # ── Layering ─────────────────────────────────────────────────────
@@ -284,7 +284,10 @@ func _apply_combat_layers(audible: bool) -> void:
 	if _combat_is_single:
 		var track: AudioStreamPlayer = _combat_players[0] if not _combat_players.is_empty() else null
 		if track != null:
-			_fade_to(track, 0.0 if audible else SILENT_DB, FADE_IN_SECONDS if audible else FADE_OUT_SECONDS, false)
+			if audible:
+				_raise(track, FADE_IN_SECONDS)
+			else:
+				_fade_to(track, SILENT_DB, FADE_OUT_SECONDS, false)
 		_apply_intensity(AudioManager.BUS_MUSIC_COMBAT, _encore_tier if audible else 0)
 		return
 
@@ -436,6 +439,19 @@ func _start_group(players: Array[AudioStreamPlayer]) -> void:
 	# starting one later when its layer unlocks, is what breaks phase lock.
 	for player in players:
 		_start_player(player)
+
+
+## Starts a player if it is not already running, then fades it up.
+##
+## The two halves belong together. Fading a stopped player sets a volume on
+## silence: no error, no warning, and the level simply has no music — which is how
+## exploration shipped mute while every test that only checked the stream loaded
+## went on passing.
+func _raise(player: AudioStreamPlayer, seconds: float) -> void:
+	if player == null:
+		return
+	_start_player(player)
+	_fade_to(player, 0.0, seconds)
 
 
 func _start_player(player: AudioStreamPlayer) -> void:
