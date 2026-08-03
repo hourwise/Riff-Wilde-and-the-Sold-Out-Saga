@@ -295,6 +295,28 @@ func _test_restorative_song() -> void:
 
 	_check(bool(song.call("can_sing")), "the song is available in a lull")
 
+	# The song's animation never played. `visual` is an @onready on the controller
+	# and a child's _ready runs before its parent's, so reading it when the song
+	# was built always gave null — silently, since the call was guarded.
+	_check(song.call("_resolve_visual") != null, "the song can reach the character visual")
+
+	# A refusal has to say which of four gates closed. "Nothing happened" on an
+	# ability gated this many ways reads as a broken button.
+	stats.call("set_breath", 0.0)
+	await process_frame
+	var reason: String = String(song.call("get_block_reason"))
+	_check(reason.contains("breath"), "a refusal names the resource that is short (%s)" % reason)
+	stats.call("set_breath", float(stats.get("max_breath")))
+	await process_frame
+
+	# Dead men do not sing. get_block_reason returned "no reason" for a dead
+	# player, which reads as "yes, go ahead".
+	_player.set("is_dead", true)
+	await process_frame
+	_check(not bool(song.call("can_sing")), "a dead player cannot sing")
+	_player.set("is_dead", false)
+	await process_frame
+
 	# Refused mid-fight. Healing to full while three skeletons watch is exactly
 	# what this must not allow.
 	tracker.set("is_in_combat", true)

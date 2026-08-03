@@ -61,9 +61,12 @@ func _on_enemy_died(enemy: Node3D) -> void:
 		host.add_child(note)
 		var angle: float = _rng.randf_range(0.0, TAU)
 		var spread: float = 0.0 if index == 0 else _rng.randf_range(0.4, scatter_radius)
+		# Spawned above the kill and left to find the floor itself. The enemy's
+		# origin is at its feet, but a scattered note lands a metre away, and on a
+		# bank a metre sideways is most of a metre of height.
 		note.global_position = at + Vector3(
 			cos(angle) * spread,
-			0.8,
+			1.0,
 			sin(angle) * spread
 		)
 

@@ -44,8 +44,9 @@ func _ready() -> void:
 	_player = get_parent()
 	_stats = _player.get_node_or_null("PlayerStats") as PlayerStats
 	_tracker = _player.get_node_or_null("CombatStateTracker")
-	_visual = _player.get("visual")
-
+	# Resolved lazily, not here. `visual` is an @onready on PlayerController, and a
+	# child's _ready runs before its parent's — so read now it is always null, and
+	# the song played no animation at all.
 	EventBus.player_damaged.connect(_on_player_damaged)
 	EventBus.combat_started.connect(_on_combat_started)
 	set_process(false)
@@ -67,16 +68,19 @@ func get_block_reason() -> String:
 		return "no stats"
 	if is_singing:
 		return "already singing"
-	if _player.get("is_dead"):
-		return ""
+	if bool(_player.get("is_dead")):
+		return "dead"
 	if _tracker != null and bool(_tracker.get("is_in_combat")):
 		return "Not while they can hear you"
 	if _stats.health >= _stats.max_health:
 		return "Already whole"
+	# Stated with the numbers. This ability is gated four ways, and a refusal that
+	# only says "not enough" leaves the player guessing which of four things to go
+	# and do — or, worse, concluding the button is broken.
 	if _stats.breath < breath_cost:
-		return "Not enough breath"
+		return "Not enough breath  %d / %d" % [int(_stats.breath), int(breath_cost)]
 	if _stats.resonance < resonance_cost:
-		return "Not enough resonance"
+		return "Not enough resonance  %d / %d" % [int(_stats.resonance), int(resonance_cost)]
 	return ""
 
 
@@ -110,8 +114,9 @@ func try_perform() -> bool:
 	_elapsed = 0.0
 	set_process(true)
 
-	if _visual != null and _visual.has_method("play_song"):
-		_visual.call("play_song")
+	var visual: Node = _resolve_visual()
+	if visual != null and visual.has_method("play_song"):
+		visual.call("play_song")
 	AudioManager.play_sfx(&"riff_song_restore")
 	EventBus.restorative_song_started.emit(channel_seconds)
 	return true
@@ -154,9 +159,15 @@ func _on_combat_started() -> void:
 	interrupt()
 
 
+func _resolve_visual() -> Node:
+	if _visual == null or not is_instance_valid(_visual):
+		_visual = _player.get("visual")
+	return _visual
+
+
 func _announce(message: String) -> void:
 	if message == "":
 		return
 	var hud: Node = _player.get("hud_controller")
 	if hud != null and hud.has_method("show_temporary_center_message"):
-		hud.call("show_temporary_center_message", message, 1.8)
+		hud.call("show_temporary_center_message", message, 2.4)

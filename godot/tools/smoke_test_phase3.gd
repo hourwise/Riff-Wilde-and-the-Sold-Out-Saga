@@ -587,6 +587,37 @@ func _test_quaver_drops() -> void:
 	await physics_frame
 	_check(_quavers().size() >= 1, "an enemy drops a note when it dies (%d)" % _quavers().size())
 
+	# Where it ends up, and how long it is there for.
+	#
+	# The first version was collected 0.42 seconds after it appeared — held still
+	# for a third of a second, then pulled in from five metres. It was never
+	# invisible; there was nothing to see. A drop has to exist as an object in the
+	# world for long enough to be noticed mid-fight.
+	if not _quavers().is_empty():
+		var dropped := _quavers()[0] as Node3D
+		for i in range(20):
+			await physics_frame
+
+		# Floating just above the floor, not buried in it and not hanging in the
+		# air. Measured against the ground actually beneath it, since the graveyard
+		# is hilly and notes scatter around the kill.
+		var space: PhysicsDirectSpaceState3D = _root.get_world_3d().direct_space_state
+		var query := PhysicsRayQueryParameters3D.create(
+			dropped.global_position + Vector3.UP * 3.0,
+			dropped.global_position - Vector3.UP * 6.0
+		)
+		query.collision_mask = 1
+		var ground: Dictionary = space.intersect_ray(query)
+		if _check(not ground.is_empty(), "a dropped note has ground beneath it"):
+			var above: float = dropped.global_position.y - float((ground["position"] as Vector3).y)
+			_check(
+				above > 0.1 and above < 0.7,
+				"it floats just above the floor (%.2fm)" % above
+			)
+
+		# Still there a full second later, with the player standing well clear.
+		_check(is_instance_valid(dropped), "and is still there to be seen a moment later")
+
 	# Wounded, then walked over one.
 	var max_health: float = float(stats.get("max_health"))
 	stats.call("set_health", max_health * 0.4)
@@ -594,7 +625,7 @@ func _test_quaver_drops() -> void:
 
 	var note: Node3D = _quavers()[0] as Node3D
 	note.global_position = _player.global_position + Vector3(0.0, 0.7, 0.0)
-	for i in range(60):
+	for i in range(180):
 		await physics_frame
 		if not is_instance_valid(note):
 			break
@@ -619,7 +650,7 @@ func _test_quaver_drops() -> void:
 	var full_note: Node3D = _quavers()[0] as Node3D if not _quavers().is_empty() else null
 	if _check(full_note != null, "a note drops from the second kill"):
 		full_note.global_position = _player.global_position + Vector3(0.0, 0.7, 0.0)
-		for i in range(60):
+		for i in range(180):
 			await physics_frame
 			if not is_instance_valid(full_note):
 				break

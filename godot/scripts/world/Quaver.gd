@@ -28,9 +28,16 @@ extends Area3D
 ## full value when health is already full.
 @export var breath_value: float = 7.0
 
-## How close before it comes to you. Generous, because stopping mid-fight to walk
-## over a specific tile is the opposite of what this is for.
-@export var attract_radius: float = 5.5
+## How high above the ground it floats once it has settled.
+@export var hover_height: float = 0.3
+
+## How close before it comes to you.
+##
+## Was 5.5, which together with a third-of-a-second hold meant a note dropped by
+## an enemy dying in melee range was collected 0.42 seconds after it appeared —
+## most of that spent held still. It was never invisible; there was simply nothing
+## to see. Now it has to be approached.
+@export var attract_radius: float = 4.0
 @export var attract_speed: float = 9.0
 ## Distance at which it is collected.
 @export var collect_radius: float = 1.1
@@ -40,9 +47,12 @@ extends Area3D
 @export var lifetime: float = 14.0
 @export var fade_seconds: float = 2.0
 
-## Held still briefly so it is seen where the kill happened, rather than flying to
-## the player from a corpse they were not looking at.
-@export var settle_seconds: float = 0.35
+## Held where it dropped before it will come to anyone.
+##
+## This is the number that decides whether the drop exists as an object in the
+## world or merely as a health tick. Long enough to be noticed in peripheral
+## vision during a fight, and to still be there when the fight ends.
+@export var settle_seconds: float = 1.6
 
 var _player: Node3D = null
 var _age: float = 0.0
@@ -50,6 +60,7 @@ var _collected: bool = false
 var _rise: float = 0.0
 var _mesh: Node3D = null
 var _light: OmniLight3D = null
+var _grounded: bool = false
 
 
 func _ready() -> void:
@@ -63,6 +74,9 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if _collected:
 		return
+
+	if not _grounded:
+		_settle_onto_ground()
 
 	_age += delta
 	if _age >= lifetime:
@@ -86,6 +100,31 @@ func _physics_process(delta: float) -> void:
 		# the player for several seconds.
 		var eagerness: float = 1.0 - (distance / attract_radius)
 		global_position += to_player.normalized() * attract_speed * (0.35 + eagerness) * delta
+
+
+## Drops the note onto whatever is beneath it.
+##
+## Done on the first physics frame rather than in _ready, because whoever spawned
+## it sets its position after adding it to the tree — in _ready it would sample the
+## ground under the world origin.
+##
+## It matters on a hilly level: notes scatter around the kill, and a metre sideways
+## on a bank is most of a metre of height. Without this they hang in the air on one
+## side of a slope and sit buried in it on the other.
+func _settle_onto_ground() -> void:
+	_grounded = true
+
+	var space: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
+	var query := PhysicsRayQueryParameters3D.create(
+		global_position + Vector3.UP * 3.0,
+		global_position - Vector3.UP * 6.0
+	)
+	query.collision_mask = 1
+	var hit: Dictionary = space.intersect_ray(query)
+	if hit.is_empty():
+		return
+
+	global_position.y = float((hit["position"] as Vector3).y) + hover_height
 
 
 func _bob(delta: float) -> void:
