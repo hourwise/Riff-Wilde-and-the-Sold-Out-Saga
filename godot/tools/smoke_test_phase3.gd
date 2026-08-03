@@ -644,6 +644,54 @@ func _test_quaver_drops() -> void:
 	await physics_frame
 	_check(_quavers().size() >= 2, "a heavy is worth more than one note (%d)" % _quavers().size())
 
+	# Drops must extend a fight, not pay for it. At 4% a note, a whole encounter's
+	# worth more than covered the damage that encounter dealt: health never fell
+	# during a fight at all, and the fights stopped having stakes.
+	#
+	# Costed against a real encounter roster rather than a guessed one, so this
+	# stays honest if the groups are re-tuned.
+	var quaver_scene := load("res://scenes/world/Quaver.tscn") as PackedScene
+	var sample: Node = quaver_scene.instantiate()
+	var per_note: float = float(sample.get("health_ratio"))
+	sample.free()
+
+	var roster: Array[String] = [
+		"res://scenes/enemies/ToneDeaf.tscn", "res://scenes/enemies/ToneDeaf.tscn",
+		"res://scenes/enemies/ToneDeaf.tscn", "res://scenes/enemies/GraveCrawler.tscn",
+		"res://scenes/enemies/HollowChoir.tscn",
+	]
+	var notes: int = 0
+	for path: String in roster:
+		var member := (load(path) as PackedScene).instantiate() as Node3D
+		_root.add_child(member)
+		await physics_frame
+		notes += int(drops.call("_drop_count", member))
+		member.queue_free()
+	await physics_frame
+
+	var restored: float = float(notes) * per_note
+	_check(
+		restored < 0.35,
+		"a whole encounter's notes restore less than a third of health (%d notes, %.0f%%)" % [notes, restored * 100.0]
+	)
+	# And enough to matter, or the drop is decoration.
+	_check(
+		restored > 0.08,
+		"but enough to keep a fight going (%.0f%%)" % (restored * 100.0)
+	)
+
+	# The heal has to be legible, not merely real. Two and a half per cent is a
+	# couple of pixels of bar in peripheral vision during a fight; without a cue on
+	# the HUD the player is healed and never knows it.
+	var hud: Node = _player.get("hud_controller")
+	if hud != null and hud.has_method("_on_quaver_collected"):
+		var bar: Control = hud.get("health_bar") as Control
+		if bar != null:
+			bar.modulate = Color.WHITE
+			hud.call("_on_quaver_collected", 3.0, 0.0)
+			await process_frame
+			_check(bar.modulate != Color.WHITE, "collecting a note is shown on the HUD")
+
 	_clear_quavers()
 	drops.queue_free()
 	await physics_frame

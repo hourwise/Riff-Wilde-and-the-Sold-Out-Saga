@@ -25,6 +25,7 @@ func _ready() -> void:
 	EventBus.lock_on_changed.connect(_on_lock_on_changed)
 	EventBus.encore_changed.connect(_on_encore_changed)
 	EventBus.encore_full.connect(_on_encore_full)
+	EventBus.quaver_collected.connect(_on_quaver_collected)
 
 
 func _on_encore_changed(value: float, max_value: float) -> void:
@@ -150,6 +151,39 @@ func _on_resonance_changed(val: float, max_val: float) -> void:
 	if resonance_bar:
 		resonance_bar.max_value = max_val
 		resonance_bar.value = val
+
+## Flashes whichever bar a collected note paid into.
+##
+## Without this the pickup is invisible where it matters. A note restores two and
+## a half per cent of health — a couple of pixels of bar, in peripheral vision,
+## during a fight the player is watching the middle of the screen for. The heal was
+## real and went unnoticed, which is the same as it not happening.
+##
+## The bar is flashed rather than a number floated, because the answer to "did that
+## do anything" should be readable without reading.
+func _on_quaver_collected(healed: float, breath: float) -> void:
+	if healed > 0.0:
+		_pulse(health_bar, Color(1.0, 0.84, 0.42))
+	if breath > 0.0:
+		_pulse(breath_bar, Color(1.0, 0.84, 0.42))
+
+
+func _pulse(bar: ProgressBar, colour: Color) -> void:
+	if bar == null:
+		return
+
+	# Restarted rather than queued. Several notes are often collected within a
+	# second of each other, and a queue of pulses would still be flashing long
+	# after the fight that caused them.
+	var tween: Tween = bar.get_meta("pulse_tween", null) as Tween
+	if tween != null and tween.is_valid():
+		tween.kill()
+
+	bar.modulate = colour
+	tween = create_tween()
+	tween.tween_property(bar, "modulate", Color.WHITE, 0.45)
+	bar.set_meta("pulse_tween", tween)
+
 
 func _set_mouse_filter_ignore(control: Control) -> void:
 	control.mouse_filter = Control.MOUSE_FILTER_IGNORE

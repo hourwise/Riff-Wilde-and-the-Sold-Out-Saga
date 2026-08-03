@@ -16,10 +16,10 @@ extends Node
 ## Enemies with at least this much maximum health drop an extra note per step.
 ## Tuned against the roster: the rank and file sit well under it, the heavies and
 ## the Choirmaster do not.
-@export var extra_drop_per_health: float = 55.0
+@export var extra_drop_per_health: float = 80.0
 
 ## Nothing drops more than this, so the boss does not carpet the courtyard.
-@export var maximum_drops: int = 6
+@export var maximum_drops: int = 4
 
 ## Spread of the little scatter each drop lands in.
 @export var scatter_radius: float = 1.1

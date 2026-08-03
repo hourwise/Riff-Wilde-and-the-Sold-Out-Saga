@@ -18,11 +18,15 @@ extends Area3D
 
 ## Share of maximum health restored. Small on purpose: the point is that killing
 ## six of them matters, not that any one of them rescues you.
-@export_range(0.005, 0.2, 0.005) var health_ratio: float = 0.04
+## Tuned down from 4% after play: at that rate a whole encounter's drops more
+## than covered the damage it dealt, so health never fell during a fight and the
+## fights stopped having stakes. The point is to let a fight continue, not to pay
+## for it.
+@export_range(0.005, 0.2, 0.005) var health_ratio: float = 0.025
 
 ## Breath granted by the part of the drop that health could not take. Applied at
 ## full value when health is already full.
-@export var breath_value: float = 9.0
+@export var breath_value: float = 7.0
 
 ## How close before it comes to you. Generous, because stopping mid-fight to walk
 ## over a specific tile is the opposite of what this is for.
@@ -88,7 +92,13 @@ func _bob(delta: float) -> void:
 	_rise += delta
 	if _mesh != null:
 		_mesh.rotate_y(delta * 2.6)
-		_mesh.position.y = 0.15 * sin(_rise * 3.0)
+		# Pops up on spawn before settling into its bob. Movement is what the eye
+		# catches in a busy fight; a note that simply appears and hovers is missed
+		# even when it is bright.
+		var pop: float = 0.0
+		if _rise < 0.45:
+			pop = sin(_rise / 0.45 * PI) * 0.5
+		_mesh.position.y = pop + 0.15 * sin(_rise * 3.0)
 
 	# Fades out rather than vanishing, so a drop that times out reads as spent
 	# instead of as having been picked up by something invisible.

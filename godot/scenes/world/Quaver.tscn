@@ -5,25 +5,29 @@
 [sub_resource type="SphereShape3D" id="Shape_pickup"]
 radius = 0.4
 
+; Warm gold, not spectral blue. The level is lit blue at night and everything
+; hostile in it is blue as well — the Cantor's notes, the altar flames, the maze
+; braziers — so a cyan pickup was both camouflaged and saying the wrong thing.
+; Blue is danger here; a reward should be the one warm thing on screen.
 [sub_resource type="StandardMaterial3D" id="Mat_note"]
 transparency = 1
 blend_mode = 1
 shading_mode = 0
-albedo_color = Color(0.55, 0.95, 1, 0.9)
+albedo_color = Color(1, 0.84, 0.42, 0.95)
 emission_enabled = true
-emission = Color(0.5, 0.95, 1, 1)
-emission_energy_multiplier = 4.0
+emission = Color(1, 0.78, 0.32, 1)
+emission_energy_multiplier = 6.0
 
 [sub_resource type="SphereMesh" id="Mesh_head"]
 material = SubResource("Mat_note")
-radius = 0.13
-height = 0.26
+radius = 0.18
+height = 0.36
 radial_segments = 10
 rings = 6
 
 [sub_resource type="BoxMesh" id="Mesh_stem"]
 material = SubResource("Mat_note")
-size = Vector3(0.035, 0.42, 0.035)
+size = Vector3(0.05, 0.58, 0.05)
 
 ; Layer 64 keeps pickups out of every combat and navigation query. It monitors
 ; nothing: collection is a distance check in the script, because an Area3D overlap
@@ -47,14 +51,14 @@ cast_shadow = 0
 mesh = SubResource("Mesh_head")
 
 [node name="Stem" type="MeshInstance3D" parent="Mesh"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.07, 0.2, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.1, 0.28, 0)
 cast_shadow = 0
 mesh = SubResource("Mesh_stem")
 
 [node name="Glow" type="OmniLight3D" parent="."]
-light_color = Color(0.5, 0.95, 1, 1)
-light_energy = 1.8
-omni_range = 3.6
+light_color = Color(1, 0.8, 0.38, 1)
+light_energy = 3.4
+omni_range = 5.5
 shadow_enabled = false
 distance_fade_enabled = true
 distance_fade_begin = 26.0
