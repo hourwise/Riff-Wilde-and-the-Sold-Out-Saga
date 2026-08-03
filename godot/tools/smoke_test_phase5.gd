@@ -321,6 +321,42 @@ func _test_content_volume() -> void:
 		"ground cover is ground-sized (tallest %.2fm, %s)" % [tallest, tallest_piece]
 	)
 
+	# Anything too small to read as a shadow should not be casting one. Bias is a
+	# fixed distance regardless of how small the caster is, so on ankle-high cover
+	# it pushes the shadow clear of its own base and the two visibly separate.
+	#
+	# Checked on the scene nodes rather than through the renderer: cast_shadow is a
+	# property, not something that has to be drawn to be read.
+	var batched: Node = builder.get_node_or_null("BatchedScenery")
+	if batched != null:
+		var shadowed_small: Array[String] = []
+		var floor_height: float = float(builder.get_script().get_script_constant_map()["SHADOW_HEIGHT_FLOOR"])
+		var tallest_by_batch: Dictionary = {}
+		for placement: Dictionary in placements:
+			var piece: String = placement["piece"]
+			var height: float = float(placement.get("height", 0.0))
+			if height > float(tallest_by_batch.get(piece, 0.0)):
+				tallest_by_batch[piece] = height
+
+		for child in batched.get_children():
+			var instance := child as MultiMeshInstance3D
+			if instance == null or not String(instance.name).begins_with("cover_"):
+				continue
+			if instance.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
+				continue
+			# Still casting: every piece in it must clear the floor.
+			for piece: String in tallest_by_batch.keys():
+				if String(instance.name).contains(piece.replace("/", "_")):
+					if float(tallest_by_batch[piece]) < floor_height:
+						shadowed_small.append("%s (%.2fm)" % [piece, tallest_by_batch[piece]])
+
+		_check(
+			shadowed_small.is_empty(),
+			"cover too small to read casts no shadow%s" % (
+				"" if shadowed_small.is_empty() else " (%s)" % "; ".join(shadowed_small)
+			)
+		)
+
 	var forest: Node = builder.get_node_or_null("ForestWall") as MultiMeshInstance3D
 	var trees: int = (forest as MultiMeshInstance3D).multimesh.instance_count if forest != null else 0
 	_check(trees >= 3000, "a forest thick enough to hide the horizon (%d trees)" % trees)

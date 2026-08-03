@@ -70,6 +70,9 @@ const CRYPT_SCALE: float = 1.8
 const TREE_SCALE: float = 1.15
 const LIGHT_SCALE: float = 1.05
 
+## Scenery shorter than this casts no shadow. See _batch for why.
+const SHADOW_HEIGHT_FLOOR: float = 0.45
+
 ## Fixed so the graveyard is identical every run. A level that reshuffles itself
 ## cannot be learned, play-tested or bug-reported against.
 const LAYOUT_SEED: int = 20260801
@@ -249,6 +252,8 @@ var _batch_group: String = "world"
 var _placements: Array[Dictionary] = []
 var _terrain: GraveyardTerrain = null
 var _height_cache: Dictionary = {}
+## Batches whose pieces are too small for their shadows to be worth drawing.
+var _unshadowed: Dictionary = {}
 
 
 func _ready() -> void:
@@ -1021,11 +1026,17 @@ func _batch(piece: String, point: Vector2, yaw: float, extra_scale: float = 1.0)
 	var transform := Transform3D(Basis.IDENTITY, Vector3(point.x, height_at(point), point.y))
 	transform.basis = Basis(Vector3.UP, yaw).scaled(Vector3.ONE * KIT_SCALE * extra_scale)
 	(_batches[key] as Array).append(transform)
-	_placements.append({
-		"piece": piece,
-		"at": point,
-		"height": _piece_height(piece) * KIT_SCALE * extra_scale,
-	})
+
+	var world_height: float = _piece_height(piece) * KIT_SCALE * extra_scale
+	# Below ankle height a shadow is a few pixels of noise that never resolves
+	# into a recognisable shape, and under a 0.3-energy moon it contributes
+	# nothing at all. Ten thousand of them cost real fill rate on the onboard GPU
+	# this is built for, and they were the worst of the detached-shadow artefact
+	# because bias is a fixed distance regardless of how small the caster is.
+	if world_height < SHADOW_HEIGHT_FLOOR:
+		_unshadowed[key] = true
+
+	_placements.append({"piece": piece, "at": point, "height": world_height})
 
 
 ## Turns the recorded batches into one MultiMeshInstance3D per mesh per district.
@@ -1059,6 +1070,8 @@ func _flush_batches() -> void:
 			var instance := MultiMeshInstance3D.new()
 			instance.name = "%s_%d" % [key.replace("/", "_"), drawn]
 			instance.multimesh = multimesh
+			if _unshadowed.has(key):
+				instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			_tint_surface(instance, key)
 			batched.add_child(instance)
 			drawn += 1

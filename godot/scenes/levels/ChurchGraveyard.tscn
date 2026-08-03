@@ -86,6 +86,17 @@ transform = Transform3D(0.866025, -0.353553, 0.353553, 0, 0.707107, 0.707107, -0
 light_color = Color(0.55, 0.66, 1, 1)
 light_energy = 0.3
 shadow_enabled = true
+; Godot's shadow bias defaults are sized for human-scale geometry and larger. The
+; normal bias alone defaults to two metres, which is eight times the height of a
+; grass tuft — so every small object's shadow was shoved most of a metre off its
+; base and read as detached.
+shadow_bias = 0.02
+shadow_normal_bias = 0.35
+; Cascades were stretched across a hundred metres of a two-hundred-metre level,
+; making the texels near the player coarse enough to need that much bias in the
+; first place. Pulled in to roughly where the fog takes over anyway.
+directional_shadow_max_distance = 55.0
+directional_shadow_blend_splits = true
 
 [node name="NavigationRegion3D" type="NavigationRegion3D" parent="."]
 navigation_mesh = SubResource("Nav_graveyard")
