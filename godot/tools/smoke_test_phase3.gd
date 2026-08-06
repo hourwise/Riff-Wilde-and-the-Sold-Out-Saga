@@ -43,6 +43,7 @@ func _initialize() -> void:
 	await _test_travels_without_zigzagging()
 	await _test_cantor_projectile()
 	await _test_quaver_drops()
+	await _test_combat_ends_with_bystanders()
 
 	print("\n=== %d/%d checks passed ===" % [_checks - _failures, _checks])
 	if _failures > 0:
@@ -740,3 +741,66 @@ func _clear_quavers() -> void:
 	for node in get_nodes_in_group("quavers"):
 		if is_instance_valid(node):
 			node.queue_free()
+
+
+## Combat has to end while other enemies are still standing about.
+##
+## Reported from play: pull two, kill them, stand still for a minute, and the fight
+## music never went away. Two separate causes, either of which alone was enough.
+##
+## The tracker treated any living enemy inside its radius as combat, and a
+## graveyard encounter spawns when the player comes within about twenty-five metres
+## and then waits to be fought — so in a level this dense there is nearly always
+## something inside the radius that has never noticed you. And the music
+## additionally refused to leave combat until no enemy was alive anywhere in the
+## level, which in a cemetery holding eighty-odd of them means "you cleared it".
+func _test_combat_ends_with_bystanders() -> void:
+	var tracker: Node = _player.get_node_or_null("CombatStateTracker")
+	if not _check(tracker != null, "combat tracker present"):
+		return
+
+	# The pair the player pulls, right on top of them.
+	var pulled: Array[Node3D] = []
+	for i in range(2):
+		var enemy := (load("res://scenes/enemies/ToneDeaf.tscn") as PackedScene).instantiate() as Node3D
+		_root.add_child(enemy)
+		enemy.global_position = _player.global_position + Vector3(2.0 + float(i), 1.0, -2.0)
+		pulled.append(enemy)
+
+	# A group inside the tracker's 24 m disengage radius but outside their own 20 m
+	# detection range: close enough to count, too far to have noticed anyone. This
+	# is the gap the bug lived in, and it is where a graveyard encounter sits after
+	# it has spawned on approach but before the player walks into it.
+	var bystanders: Array[Node3D] = []
+	for i in range(3):
+		var idle := (load("res://scenes/enemies/ToneDeaf.tscn") as PackedScene).instantiate() as Node3D
+		_root.add_child(idle)
+		idle.global_position = _player.global_position + Vector3(22.0, 1.0, 2.0 * float(i))
+		bystanders.append(idle)
+
+	for i in range(30):
+		await physics_frame
+	_check(bool(tracker.get("is_in_combat")), "pulling a pair starts combat")
+
+	for enemy: Node3D in pulled:
+		enemy.call("die")
+	await physics_frame
+
+	# Bystanders held out of the fight for the whole wait, as they would be if the
+	# player simply stood still out of their detection range.
+	var delay: float = float(tracker.get("disengage_delay"))
+	var deadline: SceneTreeTimer = create_timer(delay * 3.0 + 4.0, true, false, true)
+	var expired: Array[bool] = [false]
+	deadline.timeout.connect(func() -> void: expired[0] = true)
+
+	while bool(tracker.get("is_in_combat")) and not expired[0]:
+		await physics_frame
+
+	_check(
+		not bool(tracker.get("is_in_combat")),
+		"combat ends once the fight is over, even with a group idling nearby"
+	)
+
+	for idle: Node3D in bystanders:
+		idle.queue_free()
+	await physics_frame

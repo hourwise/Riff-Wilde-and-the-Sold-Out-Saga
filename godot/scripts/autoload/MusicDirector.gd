@@ -37,8 +37,14 @@ const FADE_OUT_SECONDS: float = 1.2
 const CROSSFADE_SECONDS: float = 1.2
 const AMBIENT_RETURN_SECONDS: float = 2.5
 
-## Combat is held briefly after the last enemy dies, so a straggler re-engaging
-## does not cause the music to lurch back and forth.
+## Combat is held briefly after the fight ends, so a straggler re-engaging does not
+## cause the music to lurch back and forth.
+##
+## Leaving used to additionally require that no enemy was alive anywhere in the
+## level. In a cemetery holding eighty-odd posted enemies that spawn on approach,
+## that condition is "you have cleared everything you have walked past" — so the
+## fight music never stopped. CombatStateTracker decides whether the player is
+## fighting; this only decides how long to wait after it says no.
 const COMBAT_HOLD_SECONDS: float = 4.0
 
 ## Stem file names, in layer order. Index matches the Encore tier that reveals it.
@@ -123,7 +129,7 @@ func _process(delta: float) -> void:
 		return
 
 	_combat_hold_timer -= delta
-	if _combat_hold_timer <= 0.0 and _live_enemy_ids.is_empty():
+	if _combat_hold_timer <= 0.0:
 		_leave_combat()
 
 

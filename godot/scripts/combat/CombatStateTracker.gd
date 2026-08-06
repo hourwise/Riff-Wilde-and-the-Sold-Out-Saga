@@ -67,8 +67,23 @@ func _has_engaged_enemy() -> bool:
 		var enemy := node as Node3D
 		if enemy == null or bool(enemy.get("is_dead")):
 			continue
-		if _player.global_position.distance_squared_to(enemy.global_position) <= radius_squared:
-			return true
+		if _player.global_position.distance_squared_to(enemy.global_position) > radius_squared:
+			continue
+
+		# Near is not the same as fighting. Encounters spawn when the player comes
+		# within about twenty-five metres and then wait to be fought, so in a level
+		# this dense there is nearly always something standing inside the radius —
+		# and combat never ended. Kill the two that pulled you, stand still for a
+		# minute, and the fight music plays on because a group you have not met yet
+		# is idling twenty metres away.
+		if enemy.has_method("is_engaged"):
+			if bool(enemy.call("is_engaged")):
+				return true
+			continue
+
+		# Anything without an opinion is assumed to be fighting, so a future enemy
+		# type cannot silently end combat by not answering.
+		return true
 
 	return false
 

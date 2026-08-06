@@ -167,6 +167,18 @@ func _recover_if_fallen() -> void:
 	push_warning("[%s] Fell out of the world and was recovered." % name)
 
 
+## Whether this enemy is actually fighting, as opposed to merely existing nearby.
+##
+## Combat state keys off this rather than off proximity. A graveyard encounter
+## spawns when the player comes within about twenty-five metres and then stands
+## there until fought, so "an enemy is close" is true almost everywhere in the
+## level and says nothing about whether a fight is happening.
+func is_engaged() -> bool:
+	if is_dead:
+		return false
+	return current_state == State.CHASE or current_state == State.ATTACK or current_state == State.STAGGER
+
+
 func _update_ai(delta: float) -> void:
 	if target == null:
 		_change_state(State.IDLE)
