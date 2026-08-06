@@ -484,14 +484,52 @@ func _test_delivered_music() -> void:
 	# could never come back down, for the rest of the session, accumulating across
 	# every retry.
 	director.call("_on_combat_started")
+	var standins: Array[Node3D] = []
 	for i in range(5):
-		_bus.enemy_spawned.emit(null)
+		var standin := Node3D.new()
+		_root.add_child(standin)
+		standins.append(standin)
+		_bus.enemy_spawned.emit(standin)
 	await process_frame
-	_check(int(director.get("_live_enemies")) == 5, "live enemies are counted")
+	_check(int(director.call("get_live_enemy_count")) == 5, "live enemies are counted")
+
+	# An enemy that leaves without dying. A patrol despawning when the player walks
+	# away does exactly this, and a plain counter never saw it — so the count stayed
+	# permanently high and combat music, which only returns to exploration at zero,
+	# never stopped again for the rest of the session.
+	standins[0].queue_free()
+	await process_frame
+	_check(
+		int(director.call("get_live_enemy_count")) == 4,
+		"an enemy that despawns without dying stops being counted (%d left)" % int(director.call("get_live_enemy_count"))
+	)
+
+	# The whole point: with everything gone, combat must actually end.
+	for index in range(1, standins.size()):
+		standins[index].queue_free()
+	await process_frame
+	_check(int(director.call("get_live_enemy_count")) == 0, "and the count reaches zero")
+
+	var hold: float = float(director.get_script().get_script_constant_map()["COMBAT_HOLD_SECONDS"])
+	var waited: SceneTreeTimer = create_timer(hold + 1.5, true, false, true)
+	var expired: Array[bool] = [false]
+	waited.timeout.connect(func() -> void: expired[0] = true)
+	while bool(director.get("_in_combat")) and not expired[0]:
+		await process_frame
+	_check(
+		not bool(director.get("_in_combat")),
+		"combat music gives way to exploration once nothing is left alive"
+	)
+
+	director.call("_on_combat_started")
+	for standin in standins:
+		if is_instance_valid(standin):
+			_bus.enemy_spawned.emit(standin)
+	await process_frame
 
 	director.call("_on_scene_transition", "res://scenes/levels/TavernHub.tscn")
 	await process_frame
-	_check(int(director.get("_live_enemies")) == 0, "leaving a level forgets the enemies left alive in it")
+	_check(int(director.call("get_live_enemy_count")) == 0, "leaving a level forgets the enemies left alive in it")
 	_check(not bool(director.get("_in_combat")), "and drops out of combat")
 	_check(not bool(director.get("_boss_active")), "and out of the boss fight")
 
@@ -536,6 +574,14 @@ func _test_delivered_music() -> void:
 		AudioServer.get_bus_volume_db(bus) > quiet,
 		"and lifts it (%.1f dB to %.1f dB)" % [quiet, AudioServer.get_bus_volume_db(bus)]
 	)
+
+	# The bottom of the range is where every fight starts. It was -7 dB behind a
+	# 900 Hz low-pass, so walking into combat made the music quieter and duller
+	# than the exploration bed it replaced.
+	var floor_db: float = float(director.get_script().get_script_constant_map()["INTENSITY_DB"][0])
+	var floor_hz: float = float(director.get_script().get_script_constant_map()["INTENSITY_CUTOFF_HZ"][0])
+	_check(floor_db > -4.0, "combat starts at a believable level (%.1f dB)" % floor_db)
+	_check(floor_hz > 2000.0, "and is not muffled when it arrives (%.0f Hz)" % floor_hz)
 
 	# Only one filter, however many times intensity is applied. Stacking a new
 	# low-pass on every tier change would muffle the music a little more each time

@@ -63,19 +63,33 @@ const BOSS_FULL: String = "boss_choirmaster_full"
 ## The filter is doing most of the work: volume alone reads as "quieter", which is
 ## the wrong idea entirely. A closed filter reads as the music being somewhere
 ## else, and opening it as the fight arriving.
-const INTENSITY_CUTOFF_HZ: PackedFloat32Array = [900.0, 2400.0, 6500.0, 20000.0]
-const INTENSITY_DB: PackedFloat32Array = [-7.0, -4.5, -2.0, 0.0]
+## The bottom of this range is where every fight STARTS, not a distant murmur to
+## climb out of. The first version put tier zero at -7 dB behind a 900 Hz
+## low-pass, so walking into combat made the music quieter and muffled than the
+## exploration bed it replaced — the opposite of what a fight starting should
+## sound like. The floor is now only slightly softened, and the Encore opens it the
+## rest of the way.
+const INTENSITY_CUTOFF_HZ: PackedFloat32Array = [3400.0, 7500.0, 13000.0, 20000.0]
+const INTENSITY_DB: PackedFloat32Array = [-2.5, -1.5, -0.5, 0.0]
 
 var _ambient_player: AudioStreamPlayer = null
 var _tavern_player: AudioStreamPlayer = null
 var _combat_players: Array[AudioStreamPlayer] = []
 var _boss_players: Array[AudioStreamPlayer] = []
 
+## Enemies alive right now, held by instance rather than counted.
+##
+## A plain counter only came down when something announced its death, and plenty
+## of enemies leave without dying: a patrol despawning when the player walks away,
+## anything freed with its scene. Each of those left the count permanently too
+## high, and combat music only returns to exploration once it reaches zero — so
+## one despawned patrol meant the fight music never stopped again.
+var _live_enemy_ids: Dictionary = {}
+
 var _in_combat: bool = false
 var _boss_active: bool = false
 var _combat_hold_timer: float = 0.0
 var _encore_tier: int = 0
-var _live_enemies: int = 0
 
 var _missing_reported: Dictionary = {}
 
@@ -109,7 +123,7 @@ func _process(delta: float) -> void:
 		return
 
 	_combat_hold_timer -= delta
-	if _combat_hold_timer <= 0.0 and _live_enemies <= 0:
+	if _combat_hold_timer <= 0.0 and _live_enemy_ids.is_empty():
 		_leave_combat()
 
 
@@ -174,14 +188,33 @@ func stop_all(fade_seconds: float = FADE_OUT_SECONDS) -> void:
 
 # ── Event handlers ───────────────────────────────────────────────
 
-func _on_enemy_spawned(_enemy: Node3D) -> void:
-	_live_enemies += 1
+func _on_enemy_spawned(enemy: Node3D) -> void:
+	if enemy == null:
+		return
+
+	var id: int = enemy.get_instance_id()
+	if _live_enemy_ids.has(id):
+		return
+	_live_enemy_ids[id] = true
+
+	# Leaving the tree counts as gone, however it happened. This is the half a
+	# plain counter could never see.
+	enemy.tree_exiting.connect(_forget_enemy.bind(id), CONNECT_ONE_SHOT)
 
 
-func _on_enemy_died(_enemy: Node3D) -> void:
-	_live_enemies = maxi(0, _live_enemies - 1)
-	if _live_enemies <= 0 and _in_combat:
+func _on_enemy_died(enemy: Node3D) -> void:
+	_forget_enemy(enemy.get_instance_id() if enemy != null else 0)
+
+
+func _forget_enemy(id: int) -> void:
+	_live_enemy_ids.erase(id)
+	if _live_enemy_ids.is_empty() and _in_combat:
 		_combat_hold_timer = COMBAT_HOLD_SECONDS
+
+
+## How many enemies the music believes are alive.
+func get_live_enemy_count() -> int:
+	return _live_enemy_ids.size()
 
 
 func _on_combat_started() -> void:
@@ -240,7 +273,7 @@ func _on_scene_transition(_path: String) -> void:
 	_in_combat = false
 	_boss_active = false
 	_combat_hold_timer = 0.0
-	_live_enemies = 0
+	_live_enemy_ids.clear()
 	_encore_tier = 0
 	stop_all(0.35)
 
