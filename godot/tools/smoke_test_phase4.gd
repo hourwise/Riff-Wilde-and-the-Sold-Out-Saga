@@ -436,6 +436,36 @@ func _test_delivered_music() -> void:
 	var ambient: AudioStreamPlayer = director.get("_ambient_player")
 	_check(ambient != null and ambient.playing, "play_exploration actually starts the music")
 
+	# Started is not the same as playing, and this is the check that was missing.
+	# A looping AudioStreamWAV whose loop_end is left at zero loops over a
+	# zero-length region: it reports itself playing for one frame, advances not one
+	# sample, and stops. Stream valid, bus unmuted, volume fading up on schedule,
+	# and the level completely silent. Asserted as forward progress through the
+	# stream, which is the only thing that means audible.
+	var furthest: float = 0.0
+	for i in range(30):
+		await process_frame
+		furthest = maxf(furthest, ambient.get_playback_position())
+	_check(
+		furthest > 0.02,
+		"and the music actually advances through the stream (%.3fs)" % furthest
+	)
+	_check(ambient.playing, "and is still playing half a second later")
+
+	# Every music stream, not only the one exploration happens to use.
+	var stalled: Array[String] = []
+	for track: String in ["explore_graveyard_ambient", "combat_full", "boss_choirmaster_full"]:
+		var stream: AudioStream = director.call("_load_stem", track)
+		var sample := stream as AudioStreamWAV
+		if sample == null:
+			continue
+		if sample.loop_mode != AudioStreamWAV.LOOP_DISABLED and sample.loop_end <= 0:
+			stalled.append(track)
+	_check(
+		stalled.is_empty(),
+		"no track loops over a zero-length region%s" % ("" if stalled.is_empty() else " (%s)" % ", ".join(stalled))
+	)
+
 	director.call("_on_combat_started")
 	await process_frame
 	var combat: AudioStreamPlayer = (director.get("_combat_players") as Array)[0]
@@ -445,6 +475,33 @@ func _test_delivered_music() -> void:
 	await process_frame
 	var boss: AudioStreamPlayer = (director.get("_boss_players") as Array)[0]
 	_check(boss != null and boss.playing, "the boss arrangement actually starts")
+
+	# Leaving a level with enemies still alive.
+	#
+	# Enemies destroyed with their scene never announce a death, so the global
+	# live count kept them forever — and combat music only returns to exploration
+	# once that count reaches zero. Five survivors left behind meant the music
+	# could never come back down, for the rest of the session, accumulating across
+	# every retry.
+	director.call("_on_combat_started")
+	for i in range(5):
+		_bus.enemy_spawned.emit(null)
+	await process_frame
+	_check(int(director.get("_live_enemies")) == 5, "live enemies are counted")
+
+	director.call("_on_scene_transition", "res://scenes/levels/TavernHub.tscn")
+	await process_frame
+	_check(int(director.get("_live_enemies")) == 0, "leaving a level forgets the enemies left alive in it")
+	_check(not bool(director.get("_in_combat")), "and drops out of combat")
+	_check(not bool(director.get("_boss_active")), "and out of the boss fight")
+
+	# The proof that it matters: exploration must be reachable again afterwards.
+	director.call("play_exploration")
+	await process_frame
+	_check(
+		(director.get("_ambient_player") as AudioStreamPlayer).playing,
+		"exploration music returns after leaving a level mid-fight"
+	)
 
 	director.call("stop_all", 0.05)
 	await process_frame

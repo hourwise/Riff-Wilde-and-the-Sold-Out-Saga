@@ -18,6 +18,8 @@ var current_state: GameState = GameState.INN_HUB
 
 var _suspend_reasons: Dictionary = {}
 var _hitstop_active: bool = false
+## Bumped by every hitstop, so a superseded one knows not to restore time.
+var _hitstop_generation: int = 0
 
 
 func _ready() -> void:
@@ -83,6 +85,15 @@ func apply_hitstop(duration: float, time_scale: float = 0.05) -> void:
 	if _hitstop_active and time_scale >= Engine.time_scale:
 		return
 
+	# Each hitstop takes a ticket, and only the newest one is allowed to restore
+	# time. Overriding a weaker freeze left the weaker one still waiting on its own
+	# timer: a 60 ms light hit followed 10 ms later by a 120 ms finisher had the
+	# light hit wake at 60 ms and end the finisher's freeze less than halfway
+	# through. The stronger the hit, the more likely it was to be cut short —
+	# exactly backwards, and it reads as hitstop being inconsistent or absent.
+	_hitstop_generation += 1
+	var generation: int = _hitstop_generation
+
 	_hitstop_active = true
 	Engine.time_scale = clampf(time_scale, 0.01, 1.0)
 
@@ -90,6 +101,10 @@ func apply_hitstop(duration: float, time_scale: float = 0.05) -> void:
 	# longer to fire, stretching a 60 ms hitstop into more than a second.
 	var timer: SceneTreeTimer = get_tree().create_timer(duration, true, false, true)
 	await timer.timeout
+
+	# Superseded while waiting: the newer freeze owns time now.
+	if generation != _hitstop_generation:
+		return
 
 	Engine.time_scale = 1.0
 	_hitstop_active = false

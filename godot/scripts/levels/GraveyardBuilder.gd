@@ -387,7 +387,15 @@ func _build_terrain() -> void:
 	apron_material.roughness = 1.0
 	apron_plane.material = apron_material
 	apron.mesh = apron_plane
-	apron.position = Vector3(ground_centre.x, _terrain.height_at(ground_centre) - 1.2, ground_centre.y)
+	# Below every part of the terrain, not below its middle.
+	#
+	# It used to sit 1.2 m under the height at the centre of the map. The ground
+	# now runs from -4.5 m to +8.3 m, so a flat plane at roughly zero sliced
+	# through every hollow in the level and surfaced as a huge dark sheet with
+	# gravestones and trees standing in it — indistinguishable from a flood.
+	apron.position = Vector3(
+		ground_centre.x, _terrain.get_lowest() - 4.0, ground_centre.y
+	)
 	add_child(apron)
 
 

@@ -465,6 +465,24 @@ func _test_content_volume() -> void:
 			)
 		)
 
+	# The apron under the forest must stay under the whole level.
+	#
+	# It sat 1.2 m below the height at the centre of the map, which was fine when
+	# the ground was flat. With hills from -4.5 m to +8.3 m it surfaced through
+	# every hollow as an enormous dark sheet with gravestones and trees standing in
+	# it — it read as a flood, and things clipped through it because it is scenery
+	# with no collision.
+	var apron := builder.get_node_or_null("ForestFloor") as Node3D
+	var terrain: Node = builder.call("get_terrain")
+	if apron != null and terrain != null and terrain.has_method("get_lowest"):
+		var lowest: float = float(terrain.call("get_lowest"))
+		_check(
+			apron.global_position.y < lowest,
+			"the forest apron stays below the lowest ground (%.1fm against %.1fm)" % [
+				apron.global_position.y, lowest
+			]
+		)
+
 	var forest: Node = builder.get_node_or_null("ForestWall") as MultiMeshInstance3D
 	var trees: int = (forest as MultiMeshInstance3D).multimesh.instance_count if forest != null else 0
 	_check(trees >= 3000, "a forest thick enough to hide the horizon (%d trees)" % trees)

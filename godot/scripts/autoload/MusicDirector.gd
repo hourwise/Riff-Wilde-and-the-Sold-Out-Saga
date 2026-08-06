@@ -229,7 +229,19 @@ func _on_game_state_changed(_previous: int, current: int) -> void:
 		play_tavern()
 
 
+## A scene change wipes the slate, not just the sound.
+##
+## Live enemies were counted globally and only decremented on enemy_died. Enemies
+## destroyed with their scene never announce a death, so leaving a level with five
+## alive left the count at five for the rest of the session — and combat music
+## could then never return to exploration, because it waits for that count to
+## reach zero. It accumulated across every retry.
 func _on_scene_transition(_path: String) -> void:
+	_in_combat = false
+	_boss_active = false
+	_combat_hold_timer = 0.0
+	_live_enemies = 0
+	_encore_tier = 0
 	stop_all(0.35)
 
 
@@ -430,7 +442,18 @@ func _load_stem(stem: String) -> AudioStream:
 		var sample := stream as AudioStreamWAV
 		if sample.loop_mode == AudioStreamWAV.LOOP_DISABLED:
 			sample.loop_mode = AudioStreamWAV.LOOP_FORWARD
-			sample.loop_end = 0
+
+		# The loop END has to be set too, and this is the whole reason the level
+		# was silent. A forward loop with loop_end left at 0 is a loop over a
+		# zero-length region: playback starts, immediately wraps to nothing, and
+		# the player reports itself finished within a frame. The stream is valid,
+		# the bus is unmuted, the volume fades up on schedule, and not one sample
+		# is ever heard.
+		#
+		# Measured in frames from the stream's own length, so it is right for any
+		# file at any rate rather than a number copied from one of them.
+		if sample.loop_mode != AudioStreamWAV.LOOP_DISABLED and sample.loop_end <= 0:
+			sample.loop_end = int(sample.get_length() * float(sample.mix_rate))
 	return stream
 
 

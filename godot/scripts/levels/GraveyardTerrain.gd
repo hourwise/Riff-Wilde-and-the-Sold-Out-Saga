@@ -485,6 +485,11 @@ func _height_at_index(column: int, row: int) -> float:
 	return _heights[y * _columns + x]
 
 
+## Lowest point of the terrain, for anything that has to sit under all of it.
+func get_lowest() -> float:
+	return _lowest()
+
+
 func _lowest() -> float:
 	var lowest: float = INF
 	for height: float in _heights:
