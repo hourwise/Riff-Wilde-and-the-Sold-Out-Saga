@@ -526,11 +526,31 @@ func _test_patrols() -> void:
 	# Moved out of detection range first: an enemy that has seen the player is
 	# chasing, not patrolling, and chasing would pass a naive movement check.
 	player.global_position = patrol.global_position + Vector3(0.0, 1.0, 70.0)
-	for i in range(40):
-		await physics_frame
 
+	# Then WAITED for it to actually forget. Chase memory is four to five seconds,
+	# and this used to wait two-thirds of one before measuring for two more — so
+	# the whole measurement happened while the enemy was still walking to where it
+	# last saw the player. It passed for as long as that walk happened to cover a
+	# metre and a half, and failed the moment the enemy arrived and stopped.
+	# Neither outcome had anything to do with patrolling.
+	var forgot: bool = false
+	for i in range(600):
+		await physics_frame
+		# State 0 is IDLE, which is the only state _patrol runs in.
+		if int(member.get("current_state")) == 0:
+			forgot = true
+			break
+
+	if not _check(forgot, "a patrol member returns to idle once the player is gone"):
+		player.global_position = resume
+		return
+
+	# Measured over eight seconds, not four. A patrol pauses 1.6 s on reaching each
+	# waypoint, so a short window can land almost entirely inside a pause and
+	# report a walking patrol as a stationary one. Eight seconds is long enough
+	# that only a genuinely stuck patrol fails.
 	var start: Vector3 = member.global_position
-	for i in range(120):
+	for i in range(480):
 		await physics_frame
 		if member.global_position.distance_to(start) > 1.5:
 			break
